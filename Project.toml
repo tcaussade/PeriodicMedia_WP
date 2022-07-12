@@ -1,0 +1,8 @@
+name = "PeriodicMediaWaveProp"
+
+[deps]
+IFGF = "b05b8bba-df36-43cd-9ac7-ed4ff3985281"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Nystrom = "a0b6a00a-3287-413a-b82d-0fe5e28ada1d"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+WavePropBase = "91c5bd54-65f5-4719-ae3b-9579edfc4a0b"
