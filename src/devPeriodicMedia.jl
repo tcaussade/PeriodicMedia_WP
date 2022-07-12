@@ -1,9 +1,11 @@
 module devPeriodicMedia
 
 using LinearAlgebra
+using StaticArrays
 using WavePropBase
 using Nystrom
-using Plots
+import Plots
+using IterativeSolvers
 
 include("Base.jl")
 include("Configuration.jl")

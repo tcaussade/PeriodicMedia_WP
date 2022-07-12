@@ -67,13 +67,13 @@ function cellsolution(P::Problem{2,1},G::Vector,w::Window,densities::Vector{Comp
 end
 
 function viewsolution(P::Problem{2,1},X,Y,U::Matrix{ComplexF64},Fig::Obstacle; ncell, part = real)
-    p = heatmap(X,Y,part.(U), clims = (-2,2), aspect_ratio = 1)
+    p = Plots.heatmap(X,Y,part.(U), clims = (-2,2), aspect_ratio = 1)
     for n in ncell
         Xn = X .+ n*P.L
         Un = U*P.γ^n
-        p  = heatmap!(Xn,Y,part.(Un), color = :RdBu, clims = (-2,2))
+        p  = Plots.heatmap!(Xn,Y,part.(Un), color = :RdBu, clims = (-2,2))
         F  = Scatterer(50, Fig; c = (n*P.L,0.), dimorder = 2)
-        p  = plot!(F, color = :black)
+        p  = Plots.plot!(F, color = :black)
     end
     return p
 end

@@ -12,17 +12,25 @@
           geodim: periodic dimensions (e.g. d=1 for 1D photonic crystals)
 """
 
-struct Problem{N,T}
+struct Problem{N,NP}
     pde :: Vector{Nystrom.Helmholtz{N, Float64}}
     dir :: Vector{Float64}
     η   :: Float64
     γ   :: Union{ComplexF64,Vector{ComplexF64}}
     L   :: Union{Float64,Vector{Float64}}
     function Problem(k::Vector{Float64},θ::Float64,L::Float64; ambdim::Int, geodim::Int)
-        @assert ambdim==2 & geodim==1 
+        @assert ambdim==2 && geodim==1 
         pde = [Helmholtz(dim=ambdim; k=k[1]), Helmholtz(dim=ambdim; k=k[2])]
         dir = [sin(θ),cos(θ)]
         γ   = exp(im*k[1]*dir[1]*L)
+        η   = 1.0
+        new{ambdim,geodim}(pde,dir,η,γ,L)
+    end
+    function Problem(k::Vector{Float64},θ::Vector{Float64},L::Vector{Float64}; ambdim::Int, geodim::Int)
+        @assert ambdim==3 && geodim==2 
+        pde = [Helmholtz(dim=ambdim; k=k[1]), Helmholtz(dim=ambdim; k=k[2])]
+        dir = [sin(θ[1])*cos(θ[2]),sin(θ[1])*sin(θ[2]), cos(θ[2])]
+        γ   = [exp(im*k[1]*dir[1]*L[1]),exp(im*k[1]*dir[2]*L[2])]
         η   = 1.0
         new{ambdim,geodim}(pde,dir,η,γ,L)
     end
@@ -37,9 +45,20 @@ function uinc(P::Problem{2,1},x::Vector)
     exp.(im*P.pde[1].k*r)
 end
 
+function uinc(P::Problem{3,NP},x::Vector) where NP
+    r = [P.dir[1]*xi[1] + P.dir[2]*xi[2] - P.dir[3]*xi[3] for xi in x]
+    exp.(im*P.pde[1].k*r)
+end
+
 function ∂uinc(P::Problem{2,1},x::Vector,ν::Vector)
     r = [P.dir[1]*xi[1] - P.dir[2]*xi[2] for xi in x]
     n = [P.dir[1]*νi[1] - P.dir[2]*νi[2] for νi in ν]
+    im*P.pde[1].k*n.*exp.(im*P.pde[1].k*r)
+end
+
+function ∂uinc(P::Problem{3,NP},x::Vector,ν::Vector) where NP
+    r = [P.dir[1]*xi[1] + P.dir[2]*xi[2] - P.dir[3]*xi[3] for xi in x]
+    n = [P.dir[1]*νi[1] + P.dir[2]*νi[2] - P.dir[3]*νi[3] for νi in ν]
     im*P.pde[1].k*n.*exp.(im*P.pde[1].k*r)
 end
 
@@ -66,10 +85,17 @@ function χ(x,w::Window)
     end
 end
         
-function wgfmatrix(G::Vector{NystromMesh{N,T,M,NM}}, w::Window) where {N,T,M,NM}
+function wgfmatrix(G::Vector{NystromMesh{2,T,M,NM}}, w::Window) where {T,M,NM}
     d1 = ones(ComplexF64, length(G[1].dofs))
     d2 = [χ(q.coords[2],w) for q in G[2].dofs]
     Diagonal([d1;d1;d2;d2])
+end
+
+function wgfmatrix(G::Vector{NystromMesh{3,T,M,NM}}, w::Window) where {T,M,NM}
+    d1 = ones(ComplexF64, length(G[1].dofs))
+    d2 = [χ(q.coords[3],w) for q in G[2].dofs]
+    d3 = [χ(q.coords[3],w) for q in G[4].dofs]
+    Diagonal([d1;d1;d2;d2;d3;d3])
 end
 
 function wgfmatrix(G::Vector, w::Window)

@@ -15,8 +15,8 @@ function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; 
     u2 = scatpotential(P,low,G)*W*σ
 
     if FRO 
-        u1 += scatfiniterankoperator()
-        u2 += scatfiniterankoperator()
+        # u1 += scatfiniterankoperator()
+        # u2 += scatfiniterankoperator()
     else
         @info "Non corrected energy balance test"
     end
