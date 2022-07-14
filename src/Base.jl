@@ -99,8 +99,14 @@ function wgfmatrix(G::Vector{NystromMesh{3,T,M,NM}}, w::Window) where {T,M,NM}
 end
 
 function wgfmatrix(G::Vector, w::Window)
-    @assert G[1] isa Dict
-    d1 = ones(ComplexF64, length(get(G[1],0,"").dofs))
-    d2 = [χ(q.coords[2],w) for q in G[2].dofs]
-    Diagonal([d1;d1;d2;d2])
+    if G[1] isa Dict{Int}
+        d1 = ones(ComplexF64, length(get(G[1],0,"").dofs))
+        d2 = [χ(q.coords[2],w) for q in G[2].dofs]
+        return Diagonal([d1;d1;d2;d2])
+    elseif G[1] isa Dict{Tuple{Int,Int}}
+        d1 = ones(ComplexF64, length(get(G[1],(0,0),"").dofs))
+        d2 = [χ(q.coords[3],w) for q in get(G[2],0,"").dofs]
+        d3 = [χ(q.coords[3],w) for q in get(G[4],0,"").dofs]
+        return Diagonal([d1;d1;d2;d2;d3;d3])
+    end
 end

@@ -51,15 +51,14 @@ function meshplot!(Γ::NystromMesh{3,T,M,NM}) where {T,M,NM}
     x = [q.coords[1] for q in Γ.dofs]
     y = [q.coords[2] for q in Γ.dofs]
     z = [q.coords[3] for q in Γ.dofs]
-    scatter!(x,y,z, legend = false)
+    Plots.scatter!(x,y,z, legend = false)
 end
 function meshplot(Γ::NystromMesh{3,T,M,NM}) where {T,M,NM}
     x = [q.coords[1] for q in Γ.dofs]
     y = [q.coords[2] for q in Γ.dofs]
     z = [q.coords[3] for q in Γ.dofs]
-    scatter(x,y,z, legend = false)
+    Plots.scatter(x,y,z, legend = false)
 end
-
 
 function StraightPlane(xe::SVector,xs::SVector; M::Tuple{Int,Int}, dimorder::Int64, qrule=WavePropBase.Fejer)
     f = (u) -> xe + [u[1], u[1], u[2]].*(xs - xe)
@@ -68,7 +67,16 @@ function StraightPlane(xe::SVector,xs::SVector; M::Tuple{Int,Int}, dimorder::Int
     msh = Nystrom.meshgen(Γ,M)
     NystromMesh(msh,Γ, WavePropBase.TensorProductQuadrature(qrule(dimorder),qrule(dimorder)))
 end
-StraightPlane(xe,xs;M,dimorder) = StraightPlane(SVector(xe),SVector(xs);M,dimorder)
+StraightPlane(xe,xs;M,dimorder,qrule) = StraightPlane(SVector(xe),SVector(xs);M,dimorder,qrule)
+
+function HorizontalStraightPlane(xe::SVector,xs::SVector; M::Tuple{Int,Int}, dimorder::Int64, qrule=WavePropBase.Fejer)
+    f = (u) -> xe + [u[1], u[2], xe[3]].*(xe - xs)
+    d = Nystrom.HyperRectangle((0.,0.),(1.,1.))
+    Γ = Domain(Nystrom.ParametricEntity(f,d))
+    msh = Nystrom.meshgen(Γ,M)
+    NystromMesh(msh,Γ, WavePropBase.TensorProductQuadrature(qrule(dimorder),qrule(dimorder)))
+end
+HorizontalStraightPlane(xe,xs;M,dimorder,qrule) = HorizontalStraightPlane(SVector(xe),SVector(xs);M,dimorder,qrule)
 
 function unitcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
     N1 = Int(ceil( sqrt(4π*Fig.radius^2 /6) * (P.pde[1].k/2π) * ppw ))

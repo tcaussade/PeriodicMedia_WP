@@ -77,3 +77,24 @@ function viewsolution(P::Problem{2,1},X,Y,U::Matrix{ComplexF64},Fig::Obstacle; n
     end
     return p
 end
+
+"""
+    3D functionalities
+"""
+
+function scatpotential(P::Problem{3,2}, eval, G::Vector)
+    D1 = sum([DoubleLayerOperator(P.pde[1], eval, get(G[1],(i,j),""))*P.γ[1]^i*P.γ[2]^j for i=-1:1,j=-1:1])
+    S1 = lmul!(-P.η, sum([SingleLayerOperator(P.pde[1], eval, get(G[1],(i,j),""))*P.γ[1]^i*P.γ[2]^j for i=-1:1,j=-1:1]))
+
+    D2 = lmul!(+1/P.γ[1], sum([DoubleLayerOperator(P.pde[1],eval,get(G[2],i,""))*P.γ[2]^i for i=-1:1]))
+    S2 = lmul!(-1/P.γ[1], sum([SingleLayerOperator(P.pde[1],eval,get(G[2],i,""))*P.γ[2]^i for i=-1:1]))
+    D3 = lmul!(-P.γ[1]^2, sum([DoubleLayerOperator(P.pde[1],eval,get(G[3],i,""))*P.γ[2]^i for i=-1:1]))
+    S3 = lmul!(+P.γ[1]^2, sum([SingleLayerOperator(P.pde[1],eval,get(G[3],i,""))*P.γ[2]^i for i=-1:1]))
+    
+    D4 = lmul!(+1/P.γ[2], sum([DoubleLayerOperator(P.pde[1],eval,get(G[4],i,""))*P.γ[1]^i for i=-1:1]))
+    S4 = lmul!(-1/P.γ[2], sum([SingleLayerOperator(P.pde[1],eval,get(G[4],i,""))*P.γ[1]^i for i=-1:1]))
+    D5 = lmul!(-P.γ[2]^2, sum([DoubleLayerOperator(P.pde[1],eval,get(G[5],i,""))*P.γ[1]^i for i=-1:1]))
+    S5 = lmul!(+P.γ[2]^2, sum([SingleLayerOperator(P.pde[1],eval,get(G[5],i,""))*P.γ[1]^i for i=-1:1]))
+
+    [D1 S1 axpy!(1.,D2,D3) axpy!(1.,S2,S3) axpy!(1.,D4,D5) axpy!(1.,S4,S5)]
+end
