@@ -67,7 +67,7 @@ function StraightPlane(xe::SVector,xs::SVector; M::Tuple{Int,Int}, dimorder::Int
     msh = Nystrom.meshgen(Γ,M)
     NystromMesh(msh,Γ, WavePropBase.TensorProductQuadrature(qrule(dimorder),qrule(dimorder)))
 end
-StraightPlane(xe,xs;M,dimorder,qrule) = StraightPlane(SVector(xe),SVector(xs);M,dimorder,qrule)
+StraightPlane(xe,xs;M,dimorder,qrule=WavePropBase.Fejer) = StraightPlane(SVector(xe),SVector(xs);M,dimorder,qrule=WavePropBase.Fejer)
 
 function HorizontalStraightPlane(xe::SVector,xs::SVector; M::Tuple{Int,Int}, dimorder::Int64, qrule=WavePropBase.Fejer)
     f = (u) -> xe + [u[1], u[2], xe[3]].*(xe - xs)
