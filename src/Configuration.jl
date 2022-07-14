@@ -30,7 +30,7 @@ function unitcell(P::Problem{2,1}, Fig::Obstacle, w::Window ; ppw::Int,dimorder:
     return [Γ₁,Γ₂,Γ₃]
 end
 
-function triplecell(P::Problem{2,1}, Fig::Obstacle, w::Window ;ppw::Int,dimorder::Int)
+function extendedcell(P::Problem{2,1}, Fig::Obstacle, w::Window ;ppw::Int,dimorder::Int)
     Mv = Int(ceil( 2*w.A*(P.pde[1].k/2π) * ppw ))
     Ms = Int(ceil( 2π*Fig.radius*(P.pde[1].k/2π) * ppw ))
     Γ₁ = Dict{Int,NystromMesh}()
@@ -46,6 +46,20 @@ end
 """
     3D2D functions
 """
+
+function meshplot!(Γ::NystromMesh{3,T,M,NM}) where {T,M,NM}
+    x = [q.coords[1] for q in Γ.dofs]
+    y = [q.coords[2] for q in Γ.dofs]
+    z = [q.coords[3] for q in Γ.dofs]
+    scatter!(x,y,z, legend = false)
+end
+function meshplot(Γ::NystromMesh{3,T,M,NM}) where {T,M,NM}
+    x = [q.coords[1] for q in Γ.dofs]
+    y = [q.coords[2] for q in Γ.dofs]
+    z = [q.coords[3] for q in Γ.dofs]
+    scatter(x,y,z, legend = false)
+end
+
 
 function StraightPlane(xe::SVector,xs::SVector; M::Tuple{Int,Int}, dimorder::Int64, qrule=WavePropBase.Fejer)
     f = (u) -> xe + [u[1], u[1], u[2]].*(xs - xe)
@@ -68,7 +82,7 @@ function unitcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::
     return [Γ₁,Γ₂,Γ₃,Γ₄,Γ₅]
 end
 
-function ninecell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
+function extendedcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
     N1 = Int(ceil( sqrt(4π*Fig.radius^2 /6) * (P.pde[1].k/2π) * ppw ))
     Nx = (Int(ceil(P.L[1]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
     Ny = (Int(ceil(P.L[2]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
@@ -79,22 +93,22 @@ function ninecell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::
     end
     Γ₂ = Dict{Int,NystromMesh}()
     for i = -1:1
-        Γ = StraightPlane((-0.5P.L[1],(-0.5+i)P.L[2],-w.A),(-0.5P.L[1],(+0.5+i)P.L[2],+w.A); M=Nx, dimorder = dimorder)
+        Γ = StraightPlane((-1.5P.L[1],(-0.5+i)P.L[2],-w.A),(-1.5P.L[1],(+0.5+i)P.L[2],+w.A); M=Nx, dimorder = dimorder)
         merge!(Γ₂, Dict(i => Γ))
     end
     Γ₃ = Dict{Int,NystromMesh}()
     for i = -1:1
-        Γ = StraightPlane((+0.5P.L[1],(-0.5+i)P.L[2],-w.A),(+0.5P.L[1],(+0.5+i)P.L[2],+w.A); M=Nx, dimorder = dimorder)
+        Γ = StraightPlane((+1.5P.L[1],(-0.5+i)P.L[2],-w.A),(+1.5P.L[1],(+0.5+i)P.L[2],+w.A); M=Nx, dimorder = dimorder)
         merge!(Γ₃, Dict(i => Γ))
     end
     Γ₄ = Dict{Int,NystromMesh}()
     for i = -1:1
-        Γ = StraightPlane(((+0.5+i)P.L[1],-0.5P.L[2],-w.A),((-0.5+i)P.L[1],-0.5P.L[2],+w.A); M=Ny, dimorder = dimorder)
+        Γ = StraightPlane(((+0.5+i)P.L[1],-1.5P.L[2],-w.A),((-0.5+i)P.L[1],-1.5P.L[2],+w.A); M=Ny, dimorder = dimorder)
         merge!(Γ₄, Dict(i => Γ))
     end
     Γ₅ = Dict{Int,NystromMesh}()
     for i = -1:1
-        Γ = StraightPlane(((+0.5+i)P.L[1],+0.5P.L[2],-w.A),((-0.5+i)P.L[1],+0.5P.L[2],+w.A); M=Ny, dimorder = dimorder)
+        Γ = StraightPlane(((+0.5+i)P.L[1],+1.5P.L[2],-w.A),((-0.5+i)P.L[1],+1.5P.L[2],+w.A); M=Ny, dimorder = dimorder)
         merge!(Γ₅, Dict(i => Γ))
     end
     return [Γ₁,Γ₂,Γ₃,Γ₄,Γ₅]

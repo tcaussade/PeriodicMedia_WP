@@ -1,9 +1,9 @@
 using devPeriodicMedia
 
 # set physical params
-k = [10.68, 20.]
+k = [4.5, 8.]
 θ = [π/12.,0.]
-L = [2.0, 2.0]
+L = [1.0, 1.0]
 P = Problem(k,θ,L; ambdim = 3, geodim = 2)
 
 # Set Windowed Green function parameters
@@ -18,10 +18,10 @@ ppw = 3
 dim = 1
 
 Γs = unitcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
-Γt = devPeriodicMedia.ninecell(P,Fig, WGF; ppw = ppw, dimorder = dim)
+Γt = devPeriodicMedia.extendedcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
 
 # Find the unkwnown densities
-ϕ = solver(P,Γs,Γt,WGF; FRO = false)
+ϕ = solver(P,Γs,Γt,WGF)
 
 # Asses method accuracy (note it uses triple cell configuration)
 @show devPeriodicMedia.energytest(P,Γt,WGF, ϕ; FRO = false)
@@ -29,3 +29,7 @@ dim = 1
 # Plot the solution over the desired cells
 X,Y,U = devPeriodicMedia.cellsolution(P,Γt,WGF,ϕ; ppw = 20)
 devPeriodicMedia.viewsolution(P,X,Y,U,Fig; ncell = -2:2)
+
+
+
+
