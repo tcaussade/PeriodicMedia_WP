@@ -2,6 +2,8 @@
     function for energy balance assesement
 """
 
+""" build horizontal curves/surfaces """
+
 function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true)
     @assert G[1] isa Dict
     H = w.A*w.c
@@ -23,7 +25,22 @@ function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; 
 
     energytest(P,H,u1,u2,xi)
 end
+function energytest(P::Problem{3,2},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true)
+    H = w.A*w.c
+    Trap = WavePropBase.TrapezoidalOpen
+    upp = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],+H),(0.5*P.L[1],0.5*P.L[2],+H); M = (20,20), dimorder = 3, qrule = Trap)
+    low = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],-H),(0.5*P.L[1],0.5*P.L[2],-H); M = (20,20), dimorder = 3, qrule = Trap)
+    xi  = [q.coords[1] for q in upp.dofs]
+    yi  = [q.coords[2] for q in upp.dofs]
 
+    W = wgfmatrix(G,w)
+    u1 = scatpotential(P,upp,G)*W*σ
+    u2 = scatpotential(P,low,G)*W*σ
+
+    energytest(P,H,u1,u2,xi,yi)
+end
+
+""" computes coefficients and assets energy conservation """
 function energytest(P::Problem{2,1},H::Float64,u1::Vector{ComplexF64},u2::Vector{ComplexF64}, x::Vector{Float64})
     nC = 20
     S = zero(ComplexF64)
@@ -42,22 +59,6 @@ function energytest(P::Problem{2,1},H::Float64,u1::Vector{ComplexF64},u2::Vector
     end
     abs(2*real(B₀)+S)
 end
-
-function energytest(P::Problem{3,2},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true)
-    H = w.A*w.c
-    Trap = WavePropBase.TrapezoidalOpen
-    upp = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],+H),(0.5*P.L[1],0.5*P.L[2],+H); M = (20,20), dimorder = 3, qrule = Trap)
-    low = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],-H),(0.5*P.L[1],0.5*P.L[2],-H); M = (20,20), dimorder = 3, qrule = Trap)
-    xi  = [q.coords[1] for q in upp.dofs]
-    yi  = [q.coords[2] for q in upp.dofs]
-
-    W = wgfmatrix(G,w)
-    u1 = scatpotential(P,upp,G)*W*σ
-    u2 = scatpotential(P,low,G)*W*σ
-
-    energytest(P,H,u1,u2,xi,yi)
-end
-
 function energytest(P::Problem{3,2},H::Float64,u1::Vector{ComplexF64},u2::Vector{ComplexF64},xi::Vector{Float64},yi::Vector{Float64})
     S = 0.0+im*0
     nC= 10

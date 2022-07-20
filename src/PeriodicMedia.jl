@@ -1,4 +1,4 @@
-module devPeriodicMedia
+module PeriodicMedia
 
 using LinearAlgebra
 using StaticArrays
@@ -16,9 +16,16 @@ include("FiniteRankOperator.jl")
 
 export 
 Problem,
+Obstacle,
 Window,
 unitcell,
+extendedcell,
 solver,
-scatpotential
+energytest,
+cellsolution,
+viewsolution,
+XYviewsolution,
+YZviewsolution,
+XZviewsolution
 
 end

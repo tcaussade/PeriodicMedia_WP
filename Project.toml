@@ -1,4 +1,4 @@
-name = "devPeriodicMedia"
+name = "PeriodicMedia"
 
 [deps]
 IFGF = "b05b8bba-df36-43cd-9ac7-ed4ff3985281"
