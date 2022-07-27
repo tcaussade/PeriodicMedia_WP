@@ -14,7 +14,8 @@ function Scatterer(M::Int, Fig::Obstacle; c, dimorder::Int)
     Ω   = Fig.shape(;radius = Fig.radius, center = c)
     ∂Ω  = boundary(Domain(Ω))
     msh = Nystrom.meshgen(∂Ω, M)
-    NystromMesh(msh,∂Ω, WavePropBase.TrapezoidalOpen(dimorder))
+    # NystromMesh(msh,∂Ω, WavePropBase.TrapezoidalOpen(dimorder))
+    NystromMesh(msh,∂Ω; order= dimorder)
 end
 
 """ vertical curves/surfaces boundary """
@@ -80,7 +81,9 @@ function extendedcell(P::Problem{2,1}, Fig::Obstacle, w::Window ;ppw::Int,dimord
         merge!(Γ₁,Dict(i => Γ))
     end
     Γ₂ = StraightLine((-1.5*P.L,-w.A),(-1.5*P.L,w.A); M = Mv, dimorder = dimorder)
+    @assert WavePropBase.normal(Γ₂.dofs[1]) == [1.,0.]
     Γ₃ = StraightLine((+1.5*P.L,-w.A),(+1.5*P.L,w.A); M = Mv, dimorder = dimorder)
+    @assert WavePropBase.normal(Γ₃.dofs[1]) == [1.,0.]
     return [Γ₁, Γ₂, Γ₃]
 end
 function extendedcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)

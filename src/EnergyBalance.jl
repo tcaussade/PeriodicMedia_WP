@@ -2,14 +2,16 @@
     function for energy balance assesement
 """
 
-""" build horizontal curves/surfaces """
+""" 
+    Build horizontal curves/surfaces and evaluate the scattered field
+    FRO = Finite Rank Operator
+"""
 
-function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true)
+function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true, H::Float64)
     @assert G[1] isa Dict
-    H = w.A*w.c
     Trap = WavePropBase.TrapezoidalOpen
-    upp = StraightLine((0.5*P.L,+H),(-0.5*P.L,+H); M = 100, dimorder = 5, qrule = Trap)
-    low = StraightLine((0.5*P.L,-H),(-0.5*P.L,-H); M = 100, dimorder = 5, qrule = Trap)
+    upp = StraightLine((-0.5*P.L,+H),(+0.5*P.L,+H); M = 100, dimorder = 5, qrule = Trap)
+    low = StraightLine((-0.5*P.L,-H),(+0.5*P.L,-H); M = 100, dimorder = 5, qrule = Trap)
     xi  = [q.coords[1] for q in upp.dofs]
 
     W = wgfmatrix(G,w)
@@ -17,6 +19,7 @@ function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; 
     u2 = scatpotential(P,low,G)*W*σ
 
     if FRO 
+        error("not implemented")
         # u1 += scatfiniterankoperator()
         # u2 += scatfiniterankoperator()
     else
@@ -42,13 +45,13 @@ end
 
 """ computes coefficients and assets energy conservation """
 function energytest(P::Problem{2,1},H::Float64,u1::Vector{ComplexF64},u2::Vector{ComplexF64}, x::Vector{Float64})
-    nC = 20
+    nC = 30
     S = zero(ComplexF64)
     α,β = P.pde[1].k*P.dir
     for n=-nC:nC
         αₙ = α + n*2π/P.L
         if P.pde[1].k ≥ abs(αₙ)
-            βₙ = sqrt(complex(P.pde[1].k^2-αₙ^2))
+            βₙ = sqrt((P.pde[1].k^2-αₙ^2))
             B⁺ = exp(-im*βₙ*H) * P.L/length(x) * dot(exp.(im*αₙ*x), u1)/P.L
             B⁻ = exp(-im*βₙ*H) * P.L/length(x) * dot(exp.(im*αₙ*x), u2)/P.L
             if n==0

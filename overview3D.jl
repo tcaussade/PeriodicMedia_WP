@@ -8,7 +8,7 @@ L = [1.0, 1.0]
 P = Problem(k,θ,L; ambdim = 3, geodim = 2)
 
 # Set Windowed Green function parameters
-WGF = Window(0.7,10*(2π/k[1]))
+WGF = Window(0.7,20*(2π/k[1]))
 
 #create geometry
 PeriodicMedia.clear_entities!()
@@ -16,7 +16,7 @@ Sphere = PeriodicMedia.ParametricSurfaces.Sphere
 Fig = Obstacle(Sphere,minimum(L)/3)
 
 ppw = 4
-dim = 3
+dim = 2
 
 Γs = unitcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
 @show smat = length(Γs[1].dofs)*2+length(Γs[2].dofs)*2+length(Γs[4].dofs)*2
@@ -41,7 +41,7 @@ dim = 3
 X,Y,Z, U = cellsolution(P,Γt,WGF,ϕ; ppw = 20, zlims = [-2.0,2.0])
 
 import Plots
-ncell = -1:1
+ncell = -10:10
 p1 = XYviewsolution(P,X,Y,U.XY; ncell = ncell)
 p2 = YZviewsolution(P,Y,Z,U.YZ; ncell = ncell)
 p3 = XZviewsolution(P,X,Z,U.XZ; ncell = ncell)
