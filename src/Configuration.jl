@@ -87,7 +87,6 @@ function extendedcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimord
     N1 = Int(ceil( sqrt(4π*Fig.radius^2 /6) * (max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
     Nx = (Int(ceil(P.L[1]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
     Ny = (Int(ceil(P.L[2]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
-    @show (Nx,Ny)
     Γ₁ = Dict{Tuple{Int,Int},NystromMesh}()
     for i = -1:1, j=-1:1
         Γ = Scatterer(N1, Fig; c = (i*P.L[1],j*P.L[2],0.), dimorder = dimorder)

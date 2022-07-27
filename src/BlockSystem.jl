@@ -24,7 +24,7 @@ function solver(P::Problem{3,2}, G::Vector{NystromMesh{3,T,M,NM}}, Gt::Vector, w
     E  = diagonal(P,G)
     b  = rightside(P,G)
     W  = wgfmatrix(G,w)
-    return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-10)
+    return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-12)
 end
 
 """ diagonal accounts the identity term that ensures second-kind Fredholmness """
@@ -42,6 +42,7 @@ function diagonal(P::Problem{3,2},G::Vector{NystromMesh{3,T,M,NM}}) where {T,M,N
 end
 
 """ rightside  accounts the incident planewave """
+
 function rightside(P::Problem{N,1}, G::Vector{NystromMesh{N,T,M,NM}}) where {N,T,M,NM}
     N2 = length(G[2].dofs)
     ui = uinc(P,[q.coords for q in G[1].dofs])
@@ -69,7 +70,8 @@ end
     methods: 
         - join blocks
         - discretize for 2D1D periodic arrays
-        - discretize for 3D2D periodic arrays """
+        - discretize for 3D2D periodic arrays 
+"""
 
 function transmissionequation(P::Problem{N,NP},G::Vector{NystromMesh{N,T,M,NM}}) where {N,T,M,NM,NP}
     eq1 = transmissionequation(P,G, DoubleLayerOperator, SingleLayerOperator)
@@ -102,20 +104,19 @@ function transmissionequation(P::Problem{3,2}, G::Vector{NystromMesh{3,T,M,NM}},
 
     D14,N14 = Matrix( opD(P.pde[1],G[1],G[4]) ), Matrix( opN(P.pde[1],G[1],G[4]) )
     D15,N15 = Matrix( opD(P.pde[1],G[1],G[5]) ), Matrix( opN(P.pde[1],G[1],G[5]) )
-    Mp5 = axpby!(P.γ[2],D14,-1.,D15)
+    Mp5 = axpby!(P.γ[2],D15,-1.,D14)
     Mp6 = axpy!(-P.γ[2],N15,N14)
 
     [Mp1 Mp2 Mp3 Mp4 Mp5 Mp6]
 end
 
-""" imposes quasiperiodicity for 2D1D arrays"""
+""" imposes quasiperiodicity for 2D1D arrays """
 
 function quasiperiodicequation(P::Problem{N,1}, G::Vector{NystromMesh{N,T,M,NM}}) where {N,T,M,NM}
     eq3 = quasiperiodicequation(P,G, DoubleLayerOperator, SingleLayerOperator)
     eq4 = quasiperiodicequation(P,G, HyperSingularOperator, AdjointDoubleLayerOperator)
     [eq3;eq4]
 end
-
 function quasiperiodicequation(P::Problem{N,1}, G::Vector{NystromMesh{N,T,M,NM}}, opD, opN) where {N,T,M,NM}
     D21,N21 = Matrix( opD(P.pde[1],G[2],G[1]) ), Matrix( opN(P.pde[1],G[2],G[1]) )
     D31,N31 = Matrix( opD(P.pde[1],G[3],G[1]) ), Matrix( opN(P.pde[1],G[3],G[1]) )
@@ -157,10 +158,12 @@ function xquasiperiodicequation(P::Problem{3,2}, G::Vector, opD, opN)
     D35,N35 = superoperator(P.pde[1],Γ₃,G[5],P.γ[1],opD), superoperator(P.pde[1],Γ₃,G[5],P.γ[1],opN)
     td1 = axpy!(P.γ[1]^3,D24,D34)
     td2 = axpy!(P.γ[1]^3,D25,D35)
-    Mp5 = lmul!(-P.γ[1]/P.γ[2],axpy!(-P.γ[2]^3,td2,td1))
+    # Mp5 = lmul!(-P.γ[1]/P.γ[2],axpy!(-P.γ[2]^3,td2,td1))
+    Mp5 = axpby!(-P.γ[1]/P.γ[2],td1, +P.γ[1]*P.γ[2]^2,td2)
     tn1 = axpy!(P.γ[1]^3,N24,N34)
     tn2 = axpy!(P.γ[1]^3,N25,N35)
-    Mp6 = lmul!(+P.γ[1]/P.γ[2],axpy!(-P.γ[2]^3,tn2,tn1))
+    # Mp6 = lmul!(+P.γ[1]/P.γ[2],axpy!(-P.γ[2]^3,tn2,tn1))
+    Mp6 = axpby!(+P.γ[1]/P.γ[2],tn1, -P.γ[1]*P.γ[2]^2,tn2)
 
     [Mp1 Mp2 Mp3 Mp4 Mp5 Mp6]
 end
@@ -179,38 +182,43 @@ function yquasiperiodicequation(P::Problem{3,2},G::Vector,opD,opN)
     Mp1 = lmul!(-P.γ[2],axpy!(P.γ[2]^3,D41,D51))
     Mp2 = lmul!(P.η*P.γ[2],axpy!(P.γ[2]^3,N41,N51))
 
-    D45,N45 = Matrix(opD(P.pde[1],Γ₄,Γ₅)), Matrix(opN(P.pde[1],Γ₄,Γ₅))
-    D54,N54 = Matrix(opD(P.pde[1],Γ₅,Γ₄)), Matrix(opN(P.pde[1],Γ₅,Γ₄))
-    Mp5 = axpby!(P.γ[2]^6,D45,-1.,D54)
-    Mp6 = axpy!(-P.γ[2]^6,N45,N54)
-
     D42,N42 = superoperator(P.pde[1],Γ₄,G[2],P.γ[2],opD), superoperator(P.pde[1],Γ₄,G[2],P.γ[2],opN)
     D52,N52 = superoperator(P.pde[1],Γ₅,G[2],P.γ[2],opD), superoperator(P.pde[1],Γ₅,G[2],P.γ[2],opN)
     D43,N43 = superoperator(P.pde[1],Γ₄,G[3],P.γ[2],opD), superoperator(P.pde[1],Γ₄,G[3],P.γ[2],opN)
     D53,N53 = superoperator(P.pde[1],Γ₅,G[3],P.γ[2],opD), superoperator(P.pde[1],Γ₅,G[3],P.γ[2],opN)
     td1 = axpy!(P.γ[2]^3,D42,D52)
     td2 = axpy!(P.γ[2]^3,D43,D53)
-    Mp3 = lmul!(-P.γ[2]/P.γ[1],axpy!(-P.γ[1]^3,td2,td1))
+    # Mp3 = lmul!(-P.γ[2]/P.γ[1],axpy!(-P.γ[1]^3,td2,td1))
+    Mp3 = axpby!(-P.γ[2]/P.γ[1],td1, +P.γ[2]*P.γ[1]^2,td2)
     tn1 = axpy!(P.γ[2]^3,N42,N52)
     tn2 = axpy!(P.γ[2]^3,N43,N53)
-    Mp4 = lmul!(-P.γ[2]/P.γ[1],axpy!(-P.γ[1]^3,tn2,tn1))
+    # Mp4 = lmul!(-P.γ[2]/P.γ[1],axpy!(-P.γ[1]^3,tn2,tn1))
+    Mp4 = axpby!(+P.γ[2]/P.γ[1],tn1, -P.γ[2]*P.γ[1]^2,tn2)
+
+    D45,N45 = Matrix(opD(P.pde[1],Γ₄,Γ₅)), Matrix(opN(P.pde[1],Γ₄,Γ₅))
+    D54,N54 = Matrix(opD(P.pde[1],Γ₅,Γ₄)), Matrix(opN(P.pde[1],Γ₅,Γ₄))
+    Mp5 = axpby!(P.γ[2]^6,D45,-1.,D54)
+    Mp6 = axpy!(-P.γ[2]^6,N45,N54)
 
     [Mp1 Mp2 Mp3 Mp4 Mp5 Mp6]
 end
 
 
-""" superoperators are used in 3D2D method to avoid corner singularities """
+""" superoperators are used in 3D2D method to avoid corner singularities 
+    if source isa Dict{Int}           : displace the density over the vertical boundary accordingly
+    if source isa Dict{Tuple{Int,Int}}: displace densities over obstacles
+"""
 
 function superoperator(pde,target::NystromMesh,source::Dict{Int}, γ::ComplexF64,op)
-    sop = zeros(ComplexF64,length(target.dofs),length(get(source,0,"").dofs))
-    for k = -1:1
-        sop += lmul!(γ^k, Matrix(op(pde,target,get(source,k,""))))
-    end
-    return sop
+    # sop = zeros(ComplexF64,length(target.dofs),length(get(source,0,"").dofs))
+    # for k = -1:1
+    #     sop += lmul!(γ^k, Matrix(op(pde,target,get(source,k,""))))
+    # end
+    # return sop
+    sum( [lmul!(γ^k, Matrix(op(pde,target,get(source,k,"")))) for k=-1:1] )
 end
-# function superoperator(pde,target::NystromMesh,source::Dict{Tuple{Int,Int}},γ::ComplexF64,op; axis)
 function superoperator(pde,target::NystromMesh,source::Dict{Tuple{Int,Int}},γ::Vector{ComplexF64},op)
-    sop = zeros(ComplexF64,length(target.dofs),length(get(source,(0,0),"").dofs))
+    # sop = zeros(ComplexF64,length(target.dofs),length(get(source,(0,0),"").dofs))
     # if axis == "x"
     #     for k = -1:1
     #         sop += lmul!(γ^k, Matrix( op(pde,target,get(source,(k,0),""))) )
@@ -220,9 +228,10 @@ function superoperator(pde,target::NystromMesh,source::Dict{Tuple{Int,Int}},γ::
     #         sop += lmul!(γ^k, Matrix( op(pde,target,get(source,(0,k),""))) )
     #     end
     # end
-    for i = -1:1, j = -1:1
-        sop += lmul!(γ[1]^i*γ[2]^j, Matrix( op(pde,target,get(source,(i,j),""))) )
-    end
-    return sop
+    # for i = -1:1, j = -1:1
+    #     sop += lmul!(γ[1]^i*γ[2]^j, Matrix( op(pde,target,get(source,(i,j),""))) )
+    # end
+    # return sop
+    sum( [lmul!(γ[1]^i*γ[2]^j, Matrix( op(pde,target,get(source,(i,j),""))) ) for i=-1:1, j=-1:1] )
 end
 

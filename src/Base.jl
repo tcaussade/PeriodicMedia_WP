@@ -29,7 +29,7 @@ struct Problem{N,NP}
     function Problem(k::Vector{Float64},θ::Vector{Float64},L::Vector{Float64}; ambdim::Int, geodim::Int)
         @assert ambdim==3 && geodim==2 
         pde = [Helmholtz(dim=ambdim; k=k[1]), Helmholtz(dim=ambdim; k=k[2])]
-        dir = [sin(θ[1])*cos(θ[2]),sin(θ[1])*sin(θ[2]), cos(θ[2])]
+        dir = [sin(θ[1])*cos(θ[2]),sin(θ[1])*sin(θ[2]), cos(θ[1])]
         γ   = [exp(im*k[1]*dir[1]*L[1]),exp(im*k[1]*dir[2]*L[2])]
         η   = 1.0
         new{ambdim,geodim}(pde,dir,η,γ,L)
