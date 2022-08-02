@@ -8,20 +8,20 @@
 """
 
 function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true, H::Float64)
-    @assert G[1] isa Dict
+    @assert G[1] isa Dict # @assert G isa extendedcell
     Trap = WavePropBase.TrapezoidalOpen
-    upp = StraightLine((-0.5*P.L,+H),(+0.5*P.L,+H); M = 100, dimorder = 5, qrule = Trap)
-    low = StraightLine((-0.5*P.L,-H),(+0.5*P.L,-H); M = 100, dimorder = 5, qrule = Trap)
+    upp = StraightLine((+0.5*P.L,+H),(-0.5*P.L,+H); M = 100, dimorder = 5, qrule = Trap)
+    low = StraightLine((+0.5*P.L,-H),(-0.5*P.L,-H); M = 100, dimorder = 5, qrule = Trap)
     xi  = [q.coords[1] for q in upp.dofs]
 
-    W = wgfmatrix(G,w)
-    u1 = scatpotential(P,upp,G)*W*σ
-    u2 = scatpotential(P,low,G)*W*σ
+    σw = lmul!(wgfmatrix(G,w),σ)
+    u1 = scatpotential(P,upp,G)*σw
+    u2 = scatpotential(P,low,G)*σw
 
     if FRO 
-        error("not implemented")
-        # u1 += scatfiniterankoperator()
-        # u2 += scatfiniterankoperator()
+        # error("not implemented")
+        u1 += scatcorrection(P,G,[q.coords for q in upp.dofs],σw; H=+H, δ = 0.75*P.pde[1].k)
+        u2 += scatcorrection(P,G,[q.coords for q in low.dofs],σw; H=+H, δ = 0.75*P.pde[1].k)
     else
         @info "Non corrected energy balance test"
     end

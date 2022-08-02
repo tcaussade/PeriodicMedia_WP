@@ -8,7 +8,7 @@ L = [1.0, 1.0]
 P = Problem(k,θ,L; ambdim = 3, geodim = 2)
 
 # Set Windowed Green function parameters
-WGF = Window(0.7,20*(2π/k[1]))
+WGF = Window(0.6,10*(2π/k[1]))
 
 #create geometry
 PeriodicMedia.clear_entities!()
@@ -41,7 +41,7 @@ dim = 2
 X,Y,Z, U = cellsolution(P,Γt,WGF,ϕ; ppw = 20, zlims = [-2.0,2.0])
 
 import Plots
-ncell = -10:10
+ncell = -1:1
 p1 = XYviewsolution(P,X,Y,U.XY; ncell = ncell)
 p2 = YZviewsolution(P,Y,Z,U.YZ; ncell = ncell)
 p3 = XZviewsolution(P,X,Z,U.XZ; ncell = ncell)

@@ -65,7 +65,7 @@ end
         is used for 3D to retrieve a given plane
 """
 
-function cellsolution(P::Problem{2,1},G::Vector,w::Window,densities::Vector{ComplexF64}; ppw, ylims = [-2P.L 2P.L])
+function cellsolution(P::Problem{2,1},G::Vector,w::Window,densities::Vector{ComplexF64}; ppw, ylims = [-2P.L 2P.L], FRO::Bool)
     @assert G[1] isa Dict
 
     h = 2π/P.pde[1].k / ppw
@@ -73,8 +73,14 @@ function cellsolution(P::Problem{2,1},G::Vector,w::Window,densities::Vector{Comp
     Y = ylims[1]:h:ylims[2]
     mshgrid = vec([[x,y]  for x in X, y in Y])
 
-    W = wgfmatrix(G,w)
-    us = scatpotential(P,mshgrid,G)*W*densities
+    σw = lmul!(wgfmatrix(G,w),densities)
+    us = scatpotential(P,mshgrid,G)*σw
+    if FRO
+        H = (P.L + w.A*w.c)*0.5
+        us += scatcorrection(P,G,mshgrid,σw; H=H, δ = 0.75*P.pde[1].k)
+    else
+        @info "Non-corrected potential"
+    end
     Γ₁ = get(G[1],0,"")
     ut = transpotential(P,mshgrid,Γ₁)*densities[1:2*length(Γ₁.dofs)]
 
