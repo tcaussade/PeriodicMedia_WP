@@ -3,20 +3,22 @@ using PeriodicMedia
 setup = "2D1D"
 
 if setup == "2D1D"
-    k = [10.68, 20.]
     θ = π/4.
     L = 2.0
+    # k = [10.68, 20.]
+    # k = [10.76, 20.]
+    k = [2π/(L*(1-sin(θ))), 20.]
     P = Problem(k,θ,L; ambdim = 2, geodim = 1)
-    # Shape = PeriodicMedia.ParametricSurfaces.Kite
-    Shape = PeriodicMedia.ParametricSurfaces.Disk
-    Fig = Obstacle(Shape,L/3)
+    Shape = PeriodicMedia.ParametricSurfaces.Kite
+    # Shape = PeriodicMedia.ParametricSurfaces.Disk
+    Fig = Obstacle(Shape,L/4)
 elseif setup == "3D2D"
     k = [4.5, 8.0]
     θ = [π/4.,π/4.]
     L = [1.0, 1.0]
     P = Problem(k,θ,L; ambdim = 3, geodim = 2)
     Shape = PeriodicMedia.ParametricSurfaces.Sphere
-    Fig = Obstacle(Sphere,minimum(L)/3)
+    Fig = Obstacle(Sphere,minimum(L)/4)
 end
 
 # Mesh parameters
@@ -24,7 +26,8 @@ ppw = 8
 dim = 5
 
 # Experiment
-windowsizes = 2π/k[1] * collect(10:2:40)
+λ = 2π/k[1]
+windowsizes = λ * collect(10:1:30)
 ef = Vector{Float64}(undef,0)
 et = Vector{Float64}(undef,0)
 for w in windowsizes
@@ -43,6 +46,7 @@ for w in windowsizes
 end
 
 import Plots
-semilog = Plots.plot(windowsizes, log10.([ef et]); title = "Semilog")
-loglog  = Plots.plot(log10.(windowsizes), log10.([ef et]), title = "Log-Log")
-Plots.plot(semilog,loglog, legend = false, xlabel = "A/λ", ylabel = "EB", ylims = (-8,-2))
+lbs     = ["without correction" "with correction"]
+semilog = Plots.plot(windowsizes/λ, log10.([ef et]); title = "Semilog", label = lbs)
+loglog  = Plots.plot(log10.(windowsizes/λ), log10.([ef et]), title = "Log-Log", label = lbs)
+Plots.plot(semilog,loglog, legend = true, xlabel = "A/λ", ylabel = "EB", ylims = (-6,-1))
