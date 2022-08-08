@@ -123,7 +123,7 @@ end
     viewsolution
         heatmaps an arbitrary number of cells
 """
-function viewsolution(P::Problem{2,1},X,Y,U::Matrix{ComplexF64},Fig::Obstacle; ncell, part = real)
+function viewsolution(P::Problem{2,1},X,Y,U::Union{Matrix{ComplexF64}, Matrix{Float64}},Fig::Obstacle; ncell, part = real)
     p = Plots.heatmap(X,Y,part.(U), clims = (-2,2), aspect_ratio = 1)
     for n in ncell
         Xn = X .+ n*P.L
@@ -134,7 +134,7 @@ function viewsolution(P::Problem{2,1},X,Y,U::Matrix{ComplexF64},Fig::Obstacle; n
     end
     return p
 end
-function XZviewsolution(P::Problem{3,2},X,Z,U::Matrix{ComplexF64}; ncell, part = real)
+function XZviewsolution(P::Problem{3,2},X,Z,U::Union{Matrix{ComplexF64}, Matrix{Float64}}; ncell, part = real)
     p = Plots.heatmap(X,Z,part.(U), clims = (-2,2), aspect_ratio = 1, title = "XZ view")
     for n in ncell
         Xn = X .+ n*P.L[1]
@@ -143,7 +143,7 @@ function XZviewsolution(P::Problem{3,2},X,Z,U::Matrix{ComplexF64}; ncell, part =
     end
     return p
 end
-function YZviewsolution(P::Problem{3,2},Y,Z,U::Matrix{ComplexF64}; ncell, part = real)
+function YZviewsolution(P::Problem{3,2},Y,Z,U::Union{Matrix{ComplexF64}, Matrix{Float64}}; ncell, part = real)
     p = Plots.heatmap(Y,Z,part.(U), clims = (-2,2), aspect_ratio = 1, title = "YZ view")
     for n in ncell
         Yn = Y .+ n*P.L[2]
@@ -152,7 +152,7 @@ function YZviewsolution(P::Problem{3,2},Y,Z,U::Matrix{ComplexF64}; ncell, part =
     end
     return p
 end
-function XYviewsolution(P::Problem{3,2},X,Y,U::Matrix{ComplexF64}; ncell, part = real)
+function XYviewsolution(P::Problem{3,2},X,Y,U::Union{Matrix{ComplexF64}, Matrix{Float64}}; ncell, part = real)
     p = Plots.heatmap(X,Y,part.(U), clims = (-2,2), aspect_ratio = 1, title = "XY view")
     for n1 in ncell, n2 in ncell
         Xn = X .+ n1*P.L[1]

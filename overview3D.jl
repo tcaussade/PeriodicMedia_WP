@@ -13,10 +13,10 @@ WGF = Window(0.6,10*(2π/k[1]))
 #create geometry
 PeriodicMedia.clear_entities!()
 Sphere = PeriodicMedia.ParametricSurfaces.Sphere
-Fig = Obstacle(Sphere,minimum(L)/3)
+Fig = Obstacle(Sphere,minimum(L)/4)
 
-ppw = 4
-dim = 2
+ppw = 8
+dim = 5
 
 Γs = unitcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
 @show smat = length(Γs[1].dofs)*2+length(Γs[2].dofs)*2+length(Γs[4].dofs)*2
@@ -48,8 +48,4 @@ p3 = XZviewsolution(P,X,Z,U.XZ; ncell = ncell)
 println( "(c,A)="*string((WGF.c,WGF.A))*", k= "*string(k)*", θ= "*string(θ./π)*"π, L="*string(L) )
 println( "EB: "*string(round(eb, digits = 8)) )
 Plots.plot(p1,p2,p3, layout=(1,3), size = (1500,700))
-
-
-
-
 
