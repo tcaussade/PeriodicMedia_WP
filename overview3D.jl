@@ -1,3 +1,5 @@
+# /home/thomas/Downloads/julia-1.7.2/bin/julia
+# import Pkg; Pkg.activate("/home/thomas/PeriodicMedia_WP")
 using PeriodicMedia
 
 # set physical params
