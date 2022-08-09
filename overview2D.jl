@@ -4,8 +4,8 @@ using PeriodicMedia
 θ = π/4.
 L = 2.0
 # k = [10.68, 20.]
-k = [10.76, 20.]
-# k = [2π/(L*(1-sin(θ))), 20.]
+# k = [10.76, 20.]
+k = [2π/(L*(1-sin(θ))), 20.]
 P = Problem(k,θ,L; ambdim = 2, geodim = 1)
 
 # Set Windowed Green function parameters

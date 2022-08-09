@@ -36,11 +36,11 @@ function finiterankoperator(P::Problem{2,1},G::Vector{NystromMesh{N,T,M,NM}},Gt:
         Lₙ⁻ = Lₙ(P,x⁻,R⁻,dR⁻; n=n, sgn = -1.)
 
         if abs(βₙ) < 1e-8
-            @info "Near RW anomaly" n
+            @info "Near RW anomaly" βₙ n
             dΨₙ⁺ = dΨₙ(P,G,r₁,n₁; n=n, sgn = +1.)
             dΨₙ⁻ = dΨₙ(P,G,r₁,n₁; n=n, sgn = -1.)
-            dLₙ⁺ = dLₙ(P,x⁺,dR⁺ ; n=n, sgn = +1.)
-            dLₙ⁻ = dLₙ(P,x⁻,dR⁻ ; n=n, sgn = -1.)
+            dLₙ⁺ = dLₙ(P,x⁺,R⁺ ; n=n, sgn = +1.)
+            dLₙ⁻ = dLₙ(P,x⁻,R⁻ ; n=n, sgn = -1.)
             FRO += 1/(2*im) * (dΨₙ⁻*Lₙ⁻ + Ψₙ⁻*dLₙ⁻ - dΨₙ⁺*Lₙ⁺ - Ψₙ⁺*dLₙ⁺)
         else
             FRO += exp(im*βₙ*H)/(2*im*βₙ) * (Ψₙ⁻ * Lₙ⁻ - Ψₙ⁺ * Lₙ⁺)
@@ -66,10 +66,10 @@ function scatcorrection(P::Problem{2,1},G::Vector,eval,σw::Vector{ComplexF64}; 
         uₙ⁺ = [exp.(im*αₙ*r[1] + im*βₙ*r[2]) for r in eval]
         uₙ⁻ = [exp.(im*αₙ*r[1] - im*βₙ*r[2]) for r in eval]
         if abs(βₙ) < 1e-8
-            Lₙ⁺ = Lₙ(P,x⁺,R⁺,dR⁺; n=n, sgn = +1.0) * σw
-            Lₙ⁻ = Lₙ(P,x⁻,R⁻,dR⁻; n=n, sgn = -1.0) * σw
-            dLₙ⁺ = dLₙ(P,x⁺,dR⁺ ; n=n, sgn = +1.0) * σw
-            dLₙ⁻ = dLₙ(P,x⁻,dR⁻ ; n=n, sgn = -1.0) * σw
+            Lₙ⁺  = Lₙ(P,x⁺,R⁺,dR⁺; n=n, sgn = +1.0) * σw
+            Lₙ⁻  = Lₙ(P,x⁻,R⁻,dR⁻; n=n, sgn = -1.0) * σw
+            dLₙ⁺ = dLₙ(P,x⁺,R⁺ ; n=n, sgn = +1.0) * σw
+            dLₙ⁻ = dLₙ(P,x⁻,R⁻ ; n=n, sgn = -1.0) * σw
             y = [r[2] for r in eval]
             duₙ⁺ = +im*y.*uₙ⁺
             duₙ⁻ = -im*y.*uₙ⁻
@@ -98,10 +98,10 @@ function Lₙ(P::Problem{2,1},x, R::Matrix{ComplexF64},dR::Matrix{ComplexF64}; n
     exp.(im*αₙ*x)' * (dR - sign(sgn) * im*βₙ* R) * P.L/length(x) /P.L
 end
 
-function dLₙ(P::Problem{2,1},x,dR::Matrix{ComplexF64}; n::Int, sgn)
+function dLₙ(P::Problem{2,1},x,R::Matrix{ComplexF64}; n::Int, sgn)
     αₙ = P.dir[1]*P.pde[1].k + 2π*n/P.L
     # βₙ = sqrt(Complex(P.pde[1].k^2-αₙ^2))
-    exp.(im*αₙ*x)' * (-im*sign(sgn)*dR) * P.L/length(x) /P.L
+    exp.(im*αₙ*x)' * (-im*sign(sgn)*R) * P.L/length(x) /P.L
 end
 
 """ Compute Ψₙ and dΨₙ as a column vector """
@@ -118,8 +118,8 @@ function dΨₙ(P::Problem{2,1},G::Vector,r1,n1; n::Int, sgn)
     αₙ = P.dir[1]*P.pde[1].k + 2π*n/P.L
     # βₙ = sqrt(Complex(P.pde[1].k^2-αₙ^2))
     # CHECK SIGN
-    uₙ = [+1. * im*r[2] * exp(im*αₙ*r[1]) for r in r1] # uₙ|Γ₁
-    vₙ = [-1. * (+r1[j][2]*αₙ*n1[j][1] - im*n1[j][2]) * exp(im*αₙ*r1[j][1]) for j=1:length(r1)] # vₙ|Γ₁ #RE-DO
+    uₙ = [-sign(sgn) * im*r[2] * exp(im*αₙ*r[1]) for r in r1] # uₙ|Γ₁
+    vₙ = [-sign(sgn) * (-r1[j][2]*αₙ*n1[j][1] + im*n1[j][2]) * exp(im*αₙ*r1[j][1]) for j=1:length(r1)] # vₙ|Γ₁ #RE-DO
     [uₙ; vₙ; zeros(2*length(G[2].dofs))]
 end
 
