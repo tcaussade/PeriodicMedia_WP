@@ -56,6 +56,24 @@ function gradscatpotential(P::Problem{N,1}, eval, G::Vector) where N
     [T1 K1 T2 K2]
 end
 
+function gradscatpotential(P::Problem{3,2}, eval, G::Vector)
+    @assert G[1] isa Dict{Tuple{Int,Int}}
+    T1 = sum([HyperSingularOperator(P.pde[1], eval, get(G[1],(i,j),""))*P.γ[1]^i*P.γ[2]^j for i=-1:1,j=-1:1])
+    K1 = lmul!(-P.η, sum([AdjointDoubleLayerOperator(P.pde[1], eval, get(G[1],(i,j),""))*P.γ[1]^i*P.γ[2]^j for i=-1:1,j=-1:1]))
+
+    T2 = lmul!(+1/P.γ[1], sum([HyperSingularOperator(P.pde[1],eval,get(G[2],i,""))*P.γ[2]^i for i=-1:1]))
+    K2 = lmul!(-1/P.γ[1], sum([AdjointDoubleLayerOperator(P.pde[1],eval,get(G[2],i,""))*P.γ[2]^i for i=-1:1]))
+    T3 = lmul!(-P.γ[1]^2, sum([HyperSingularOperator(P.pde[1],eval,get(G[3],i,""))*P.γ[2]^i for i=-1:1]))
+    K3 = lmul!(+P.γ[1]^2, sum([AdjointDoubleLayerOperator(P.pde[1],eval,get(G[3],i,""))*P.γ[2]^i for i=-1:1]))
+    
+    T4 = lmul!(+1/P.γ[2], sum([HyperSingularOperator(P.pde[1],eval,get(G[4],i,""))*P.γ[1]^i for i=-1:1]))
+    K4 = lmul!(-1/P.γ[2], sum([AdjointDoubleLayerOperator(P.pde[1],eval,get(G[4],i,""))*P.γ[1]^i for i=-1:1]))
+    T5 = lmul!(-P.γ[2]^2, sum([HyperSingularOperator(P.pde[1],eval,get(G[5],i,""))*P.γ[1]^i for i=-1:1]))
+    K5 = lmul!(+P.γ[2]^2, sum([AdjointDoubleLayerOperator(P.pde[1],eval,get(G[5],i,""))*P.γ[1]^i for i=-1:1]))
+
+    [T1 K1 axpy!(1.,T2,T3) axpy!(1.,K2,K3) axpy!(1.,T4,T5) axpy!(1.,K4,K5)]
+end
+
 """ 
     cellsolution(P,G,w; ppw)
         G must be extended cell
@@ -76,7 +94,7 @@ function cellsolution(P::Problem{2,1},G::Vector,w::Window,densities::Vector{Comp
     σw = lmul!(wgfmatrix(G,w),densities)
     us = scatpotential(P,mshgrid,G)*σw
     if FRO
-        H = (P.L + w.A*w.c)*0.5
+        H = w.A*w.c
         us += scatcorrection(P,G,mshgrid,σw; H=H, δ = 0.75*P.pde[1].k)
     else
         @info "Non-corrected potential"
@@ -93,24 +111,31 @@ function cellsolution(P::Problem{2,1},G::Vector,w::Window,densities::Vector{Comp
     return X,Y,U
 
 end
-function cellsolution(P::Problem{3,2},G::Vector,w::Window,densities::Vector{ComplexF64}; ppw, zlims = [-w.c*w.A w.c*w.A])
+function cellsolution(P::Problem{3,2},G::Vector,w::Window,densities::Vector{ComplexF64}; ppw, zlims = [-w.c*w.A w.c*w.A], FRO::Bool)
     h = 2π/max(P.pde[1].k,P.pde[2].k) / ppw
     X = -0.5*P.L[1]:h:0.5*P.L[1]
     Y = -0.5*P.L[2]:h:0.5*P.L[2]
     Z = zlims[1]:h:zlims[2]
 
-    W = wgfmatrix(G,w)
+    σw = lmul!(wgfmatrix(G,w),densities)
     
-    Uxz = cutcellsolution(P,vec([SVector(x,0.,z)  for x in X, z in Z]),W,densities,G)
-    Uyz = cutcellsolution(P,vec([SVector(0.,y,z)  for y in Y, z in Z]),W,densities,G)
-    Uxy = cutcellsolution(P,vec([SVector(x,y,0.)  for x in X, y in Y]),W,densities,G)
+    FRO ? nothing : @info "Non-corrected potential"
+    Uxz = cutcellsolution(P,vec([SVector(x,0.,z)  for x in X, z in Z]),w,σw,G; FRO = FRO)
+    Uyz = cutcellsolution(P,vec([SVector(0.,y,z)  for y in Y, z in Z]),w,σw,G; FRO = FRO)
+    Uxy = cutcellsolution(P,vec([SVector(x,y,0.)  for x in X, y in Y]),w,σw,G; FRO = FRO)
 
     return X,Y,Z, (XZ = Uxz, YZ = Uyz, XY = Uxy)
 end
-function cutcellsolution(P::Problem{3,2},mshgrid,wgfmat::Diagonal,densities::Vector{ComplexF64},G::Vector)
+function cutcellsolution(P::Problem{3,2},mshgrid,w::Window,σw::Vector{ComplexF64},G::Vector; FRO::Bool)
     Γ₁ = get(G[1],(0,0),"")
-    us = scatpotential(P,mshgrid,G)*wgfmat*densities
-    ut = transpotential(P,mshgrid,Γ₁)*densities[1:2*length(Γ₁.dofs)]
+    us = scatpotential(P,mshgrid,G)*σw
+    if FRO
+        H =  w.A*w.c
+        us += scatcorrection(P,G,mshgrid,σw; H=H, δ = 0.75*P.pde[1].k)
+    else
+        # @info "Non-corrected potential"
+    end
+    ut = transpotential(P,mshgrid,Γ₁)*σw[1:2*length(Γ₁.dofs)]
     U = Matrix{ComplexF64}(undef,length(mshgrid),1)
     for n = 1:length(mshgrid)
         xp,yp,zp = mshgrid[n]

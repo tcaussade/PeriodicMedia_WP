@@ -19,11 +19,19 @@ function solver(P::Problem{N,1}, G::Vector{NystromMesh{N,T,M,NM}}, Gt::Vector, w
 
     return (E+MB*W)\b
 end
-function solver(P::Problem{3,2}, G::Vector{NystromMesh{3,T,M,NM}}, Gt::Vector, w::Window) where {T,M,NM}
+function solver(P::Problem{3,2}, G::Vector{NystromMesh{3,T,M,NM}}, Gt::Vector, w::Window; FRO = true) where {T,M,NM}
     MB = integralblockassembler(P,G,Gt)
     E  = diagonal(P,G)
     b  = rightside(P,G)
     W  = wgfmatrix(G,w)
+
+    if FRO
+        @assert Gt[1] isa Dict{Tuple{Int,Int}}
+        MB += finiterankoperator(P,G,Gt; δ = 0.75*P.pde[1].k, H = w.c*w.A)
+    else
+        @info "Solving without corrections"
+    end
+
     return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-12)
 end
 

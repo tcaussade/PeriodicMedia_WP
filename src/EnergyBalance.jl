@@ -28,17 +28,23 @@ function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; 
 
     energytest(P,H,u1,u2,xi)
 end
-function energytest(P::Problem{3,2},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true)
-    H = w.A*w.c
+function energytest(P::Problem{3,2},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true, H::Float64)
     Trap = WavePropBase.TrapezoidalOpen
     upp = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],+H),(0.5*P.L[1],0.5*P.L[2],+H); M = (20,20), dimorder = 3, qrule = Trap)
     low = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],-H),(0.5*P.L[1],0.5*P.L[2],-H); M = (20,20), dimorder = 3, qrule = Trap)
     xi  = [q.coords[1] for q in upp.dofs]
     yi  = [q.coords[2] for q in upp.dofs]
 
-    W = wgfmatrix(G,w)
-    u1 = scatpotential(P,upp,G)*W*σ
-    u2 = scatpotential(P,low,G)*W*σ
+    σw = lmul!(wgfmatrix(G,w),σ)
+    u1 = scatpotential(P,upp,G)*σw
+    u2 = scatpotential(P,low,G)*σw
+
+    if FRO
+        u1 += scatcorrection(P,G,[q.coords for q in upp.dofs],σw; H=+H, δ = 0.75*P.pde[1].k)
+        u2 += scatcorrection(P,G,[q.coords for q in low.dofs],σw; H=+H, δ = 0.75*P.pde[1].k)
+    else
+        @info "Non corrected energy balance test"
+    end
 
     energytest(P,H,u1,u2,xi,yi)
 end
@@ -71,7 +77,6 @@ function energytest(P::Problem{3,2},H::Float64,u1::Vector{ComplexF64},u2::Vector
         αₘ₂ = α₂ + n2*2π/P.L[2]
         if P.pde[1].k^2 ≥ abs(αₘ₁)^2 + abs(αₘ₂)^2
             βₙ = sqrt((P.pde[1].k^2 - αₘ₁^2 - αₘ₂^2 ))
-            @show βₙ, (n1,n2)
             B⁺ = exp(-im*βₙ*H)/P.L[1]/P.L[2] * sum( u1.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
             B⁻ = exp(-im*βₙ*H)/P.L[1]/P.L[2] * sum( u2.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
             if n1 == 0 && n2 == 0

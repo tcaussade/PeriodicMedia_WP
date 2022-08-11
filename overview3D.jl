@@ -17,8 +17,8 @@ PeriodicMedia.clear_entities!()
 Sphere = PeriodicMedia.ParametricSurfaces.Sphere
 Fig = Obstacle(Sphere,minimum(L)/4)
 
-ppw = 8
-dim = 5
+ppw = 1
+dim = 1
 
 Γs = unitcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
 @show smat = length(Γs[1].dofs)*2+length(Γs[2].dofs)*2+length(Γs[4].dofs)*2
@@ -34,13 +34,16 @@ dim = 5
 # PeriodicMedia.meshplot(get(Γt[4],0,""))
 
 # Find the unkwnown densities
-@time ϕ = solver(P,Γs,Γt,WGF)
+@time ϕt = solver(P,Γs,Γt,WGF; FRO = true)
+@time ϕf = solver(P,Γs,Γt,WGF; FRO = false)
 
 # Asses method accuracy (note it uses triple cell configuration)
-@show eb = energytest(P,Γt,WGF, ϕ; FRO = false)
+@show energytest(P,Γt,WGF, ϕt; FRO = true, H = 1.0)
+@show energytest(P,Γt,WGF, ϕf; FRO = false, H = 1.0)
 
 # Plot the solution over the desired cells
-X,Y,Z, U = cellsolution(P,Γt,WGF,ϕ; ppw = 20, zlims = [-2.0,2.0])
+X,Y,Z, U = cellsolution(P,Γt,WGF,ϕt; ppw = 20, zlims = [-2.0,2.0], FRO = true)
+X,Y,Z, U = cellsolution(P,Γt,WGF,ϕf; ppw = 20, zlims = [-2.0,2.0], FRO = false)
 
 import Plots
 ncell = -1:1
