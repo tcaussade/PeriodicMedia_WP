@@ -3,7 +3,9 @@
 using PeriodicMedia
 
 # set physical params
-k = [4.5, 8.0]
+# k1 = 4.59961087822572 #RW-anomaly
+k1 = 4.0 # only m = (0,0) propagates
+k = [k1, 8.0]
 θ = [π/4.,π/4.]
 # θ = [π/4.,π/2.]
 L = [1.0, 1.0]
@@ -17,13 +19,14 @@ PeriodicMedia.clear_entities!()
 Sphere = PeriodicMedia.ParametricSurfaces.Sphere
 Fig = Obstacle(Sphere,minimum(L)/4)
 
-ppw = 1
-dim = 1
+ppw = 3
+dim = 2
 
 Γs = unitcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
 @show smat = length(Γs[1].dofs)*2+length(Γs[2].dofs)*2+length(Γs[4].dofs)*2
 Γt = extendedcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
 
+# PeriodicMedia.meshplot(Γs[1])
 # PeriodicMedia.meshplot(get(Γt[2],-1,""))
 # PeriodicMedia.meshplot!(get(Γt[2],0,""))
 # PeriodicMedia.meshplot!(get(Γt[5],-1,""))
@@ -34,19 +37,19 @@ dim = 1
 # PeriodicMedia.meshplot(get(Γt[4],0,""))
 
 # Find the unkwnown densities
-@time ϕt = solver(P,Γs,Γt,WGF; FRO = true)
+# @time ϕt = solver(P,Γs,Γt,WGF; FRO = true)
 @time ϕf = solver(P,Γs,Γt,WGF; FRO = false)
 
 # Asses method accuracy (note it uses triple cell configuration)
-@show energytest(P,Γt,WGF, ϕt; FRO = true, H = 1.0)
-@show energytest(P,Γt,WGF, ϕf; FRO = false, H = 1.0)
+# @show energytest(P,Γt,WGF, ϕt; FRO = true, H = 1.0)
+@show eb = energytest(P,Γt,WGF, ϕf; FRO = false, H = 1.0)
 
 # Plot the solution over the desired cells
-X,Y,Z, U = cellsolution(P,Γt,WGF,ϕt; ppw = 20, zlims = [-2.0,2.0], FRO = true)
-X,Y,Z, U = cellsolution(P,Γt,WGF,ϕf; ppw = 20, zlims = [-2.0,2.0], FRO = false)
+# X,Y,Z, U = cellsolution(P,Γt,WGF,ϕt; ppw = 20, zlims = [-2.0,2.0], FRO = true)
+X,Y,Z, U = cellsolution(P,Γt,WGF,ϕf; ppw = 20, zlims = [-2.0,4.0], FRO = false)
 
 import Plots
-ncell = -1:1
+ncell = -2:2
 p1 = XYviewsolution(P,X,Y,U.XY; ncell = ncell)
 p2 = YZviewsolution(P,Y,Z,U.YZ; ncell = ncell)
 p3 = XZviewsolution(P,X,Z,U.XZ; ncell = ncell)

@@ -45,20 +45,38 @@ function HorizontalStraightPlane(xe::SVector,xs::SVector; M::Tuple{Int,Int}, dim
 end
 HorizontalStraightPlane(xe,xs;M,dimorder,qrule) = HorizontalStraightPlane(SVector(xe),SVector(xs);M,dimorder,qrule)
 
+""" ndofs returns the number of dofs to be used for each object to be discretized """
+
+function ndofs(P::Problem{2,1},Fig::Obstacle, w::Window , ppw::Int)
+    λ₁,λ₂ = 2π./[P.pde[1].k, P.pde[2].k]
+    Mv = Int(ceil( 2*w.A/λ₁ * ppw ))
+    Ms = Int(ceil( 2π*Fig.radius / max(λ₁,λ₂) * ppw ))
+    Ms,Mv
+end
+function ndofs(P::Problem{3,NP},Fig::Obstacle, w::Window , ppw::Int) where NP
+    λ₁,λ₂ = 2π./[P.pde[1].k, P.pde[2].k]
+    N1 = Int(ceil( 4π*Fig.radius^2 /6 / max(λ₁,λ₂)^2 * ppw ))
+    Nx = (Int(ceil(P.L[1]/λ₁ * ppw)), Int(ceil(2*w.A/λ₁ * ppw)))
+    Ny = (Int(ceil(P.L[2]/λ₁ * ppw)), Int(ceil(2*w.A/λ₁ * ppw)))
+    N1,Nx,Ny
+end
+
 """ unitcell creates a unit cell, thus contains no displaced curves and a single osbtacle """
 
 function unitcell(P::Problem{2,1}, Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
-    Mv = Int(ceil( 2*w.A*(P.pde[1].k/2π) * ppw ))
-    Ms = Int(ceil( 2π*Fig.radius*(max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
+    # Mv = Int(ceil( 2*w.A*(P.pde[1].k/2π) * ppw ))
+    # Ms = Int(ceil( 2π*Fig.radius*(max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
+    Ms,Mv = ndofs(P,Fig,w,ppw)
     Γ₁ = Scatterer(Ms, Fig; c = (0.,0.), dimorder = dimorder)
     Γ₂ = StraightLine((-0.5*P.L,-w.A),(-0.5*P.L,w.A); M = Mv, dimorder = dimorder)
     Γ₃ = StraightLine((+0.5*P.L,-w.A),(+0.5*P.L,w.A); M = Mv, dimorder = dimorder)
     return [Γ₁,Γ₂,Γ₃]
 end
 function unitcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
-    N1 = Int(ceil( sqrt(4π*Fig.radius^2 /6) * (max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
-    Nx = (Int(ceil(P.L[1]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
-    Ny = (Int(ceil(P.L[2]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
+    # N1 = Int(ceil( sqrt(4π*Fig.radius^2 /6) * (max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
+    # Nx = (Int(ceil(P.L[1]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
+    # Ny = (Int(ceil(P.L[2]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
+    N1,Nx,Ny = ndofs(P,Fig,w,ppw)
     Γ₁ = Scatterer(N1,Fig; c = (0.,0.,0.), dimorder = dimorder)
     Γ₂ = StraightPlane((-0.5P.L[1],-0.5P.L[2],-w.A),(-0.5P.L[1],+0.5P.L[2],+w.A); M=Nx, dimorder = dimorder)  
     Γ₃ = StraightPlane((+0.5P.L[1],-0.5P.L[2],-w.A),(+0.5P.L[1],+0.5P.L[2],+w.A); M=Nx, dimorder = dimorder)
@@ -76,8 +94,7 @@ end
     - 3D2D returns a nine-cell setup """
 
 function extendedcell(P::Problem{2,1}, Fig::Obstacle, w::Window ;ppw::Int,dimorder::Int)
-    Mv = Int(ceil( 2*w.A*(P.pde[1].k/2π) * ppw ))
-    Ms = Int(ceil( 2π*Fig.radius*(max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
+    Ms,Mv = ndofs(P,Fig,w,ppw)
     Γ₁ = Dict{Int,NystromMesh}()
     for i = -1:1
         Γ = Scatterer(Ms, Fig; c = (i*P.L,0.), dimorder = dimorder)
@@ -90,9 +107,7 @@ function extendedcell(P::Problem{2,1}, Fig::Obstacle, w::Window ;ppw::Int,dimord
     return [Γ₁, Γ₂, Γ₃]
 end
 function extendedcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
-    N1 = Int(ceil( sqrt(4π*Fig.radius^2 /6) * (max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
-    Nx = (Int(ceil(P.L[1]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
-    Ny = (Int(ceil(P.L[2]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
+    N1,Nx,Ny = ndofs(P,Fig,w,ppw)
     Γ₁ = Dict{Tuple{Int,Int},NystromMesh}()
     for i = -1:1, j=-1:1
         Γ = Scatterer(N1, Fig; c = (i*P.L[1],j*P.L[2],0.), dimorder = dimorder)
