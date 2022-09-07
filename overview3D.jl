@@ -53,7 +53,8 @@ ncell = -2:2
 p1 = XYviewsolution(P,X,Y,U.XY; ncell = ncell)
 p2 = YZviewsolution(P,Y,Z,U.YZ; ncell = ncell)
 p3 = XZviewsolution(P,X,Z,U.XZ; ncell = ncell)
-println( "(c,A)="*string((WGF.c,WGF.A))*", k= "*string(k)*", θ= "*string(θ./π)*"π, L="*string(L) )
+lb = "(c,A/λ)="*string((WGF.c,WGF.A/λ))*", k= "*string(k)*", θ= "*string(θ./π)*"π, L="*string(L)
+println( lb )
 println( "EB: "*string(round(eb, digits = 8)) )
-Plots.plot(p1,p2,p3, layout=(1,3), size = (1500,700))
-
+Plots.plot(p1,p2,p3, layout=(1,3), size = (1500,700), plot_title = lb*" EB: "*string(round(eb, digits = 8)))
+Plots.savefig(p,"bigexperiment.png")
