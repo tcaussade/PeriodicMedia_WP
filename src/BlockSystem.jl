@@ -32,7 +32,7 @@ function solver(P::Problem{3,2}, G::Vector{NystromMesh{3,T,M,NM}}, Gt::Vector, w
         @info "Solving without corrections"
     end
 
-    return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-6)
+    return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-8)
 end
 
 """ diagonal accounts the identity term that ensures second-kind Fredholmness """

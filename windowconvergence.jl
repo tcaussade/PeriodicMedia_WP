@@ -1,3 +1,6 @@
+# /home/thomas/Downloads/julia-1.7.2/bin/julia
+# import Pkg; Pkg.activate("/home/thomas/PeriodicMedia_WP")
+
 using PeriodicMedia
 import Plots
 
@@ -14,8 +17,9 @@ function windowconvergence(P::Problem, Fig::Obstacle, windowsizes)
         @show ebf = energytest(P,Γt,WGF, ϕf; FRO = false, H = 1.0)
         push!(ef,ebf)
         # Corrected solution
-        ϕt = solver(P,Γs,Γt,WGF; FRO = true)
-        @show ebt = energytest(P,Γt,WGF, ϕt; FRO = true, H = 1.0)
+        # ϕt = solver(P,Γs,Γt,WGF; FRO = true)
+        # @show ebt = energytest(P,Γt,WGF, ϕt; FRO = true, H = 1.0)
+        ebt = 1.0
         push!(et,ebt)  
     end
     return ef,et
@@ -67,25 +71,24 @@ if setup == "2D1D"
                     size = (1500,800)), "2d1d.png")
 
 elseif setup == "3D2D"
-    # k = [4.5, 8.0]
-    k1 = [4.5, 5.0, 5.5]
+    k1 = [9.0, 9.199221756451442, 9.5]
     θ = [π/4.,π/4.]
-    L = [1.0, 1.0]
+    L = [0.5, 0.5]
     Shape = PeriodicMedia.ParametricSurfaces.Sphere
     Fig = Obstacle(Shape,minimum(L)/4)
 
     ####################################
-    global ppw = 2
+    global ppw = 1
     global dim = 1
     ####################################
 
     
     Threads.@threads for i = 1:3
-        P = Problem([k1[i],8.],θ,L; ambdim = 3, geodim = 2)
+        P = Problem([k1[i],17.],θ,L; ambdim = 3, geodim = 2)
 
         ####################################
         global λ = 2π/k1[i]
-        windowsizes = λ * collect(10:5:30)
+        windowsizes = λ * collect(10:10:30)
         ####################################
 
         ef,et = windowconvergence(P,Fig,windowsizes)
