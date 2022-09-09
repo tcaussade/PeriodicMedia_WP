@@ -47,15 +47,15 @@ HorizontalStraightPlane(xe,xs;M,dimorder,qrule) = HorizontalStraightPlane(SVecto
 
 """ ndofs returns the number of dofs to be used for each object to be discretized """
 
-function ndofs(P::Problem{2,1},Fig::Obstacle, w::Window , ppw::Int)
+function ndofs(P::Problem{2,1},Fig::Obstacle, w::Window , ppw::Any)
     λ₁,λ₂ = 2π./[P.pde[1].k, P.pde[2].k]
     Mv = Int(ceil( 2*w.A/λ₁ * ppw ))
     Ms = Int(ceil( 2π*Fig.radius / max(λ₁,λ₂) * ppw ))
     Ms,Mv
 end
-function ndofs(P::Problem{3,NP},Fig::Obstacle, w::Window , ppw::Int) where NP
+function ndofs(P::Problem{3,NP},Fig::Obstacle, w::Window , ppw::Any) where NP
     λ₁,λ₂ = 2π./[P.pde[1].k, P.pde[2].k]
-    N1 = Int(ceil( 4π*Fig.radius^2 /6 / max(λ₁,λ₂)^2 * ppw ))
+    N1 = Int(ceil( 4π*Fig.radius^2 / max(λ₁,λ₂)^2 * ppw ))
     Nx = (Int(ceil(P.L[1]/λ₁ * ppw)), Int(ceil(2*w.A/λ₁ * ppw)))
     Ny = (Int(ceil(P.L[2]/λ₁ * ppw)), Int(ceil(2*w.A/λ₁ * ppw)))
     N1,Nx,Ny
@@ -63,7 +63,7 @@ end
 
 """ unitcell creates a unit cell, thus contains no displaced curves and a single osbtacle """
 
-function unitcell(P::Problem{2,1}, Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
+function unitcell(P::Problem{2,1}, Fig::Obstacle, w::Window ; ppw::Any,dimorder::Int)
     # Mv = Int(ceil( 2*w.A*(P.pde[1].k/2π) * ppw ))
     # Ms = Int(ceil( 2π*Fig.radius*(max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
     Ms,Mv = ndofs(P,Fig,w,ppw)
@@ -72,7 +72,7 @@ function unitcell(P::Problem{2,1}, Fig::Obstacle, w::Window ; ppw::Int,dimorder:
     Γ₃ = StraightLine((+0.5*P.L,-w.A),(+0.5*P.L,w.A); M = Mv, dimorder = dimorder)
     return [Γ₁,Γ₂,Γ₃]
 end
-function unitcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
+function unitcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Any,dimorder::Int)
     # N1 = Int(ceil( sqrt(4π*Fig.radius^2 /6) * (max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
     # Nx = (Int(ceil(P.L[1]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
     # Ny = (Int(ceil(P.L[2]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
@@ -93,7 +93,7 @@ end
     - 2D1D returns a triple-cell setup
     - 3D2D returns a nine-cell setup """
 
-function extendedcell(P::Problem{2,1}, Fig::Obstacle, w::Window ;ppw::Int,dimorder::Int)
+function extendedcell(P::Problem{2,1}, Fig::Obstacle, w::Window ;ppw::Any,dimorder::Int)
     Ms,Mv = ndofs(P,Fig,w,ppw)
     Γ₁ = Dict{Int,NystromMesh}()
     for i = -1:1
@@ -106,7 +106,7 @@ function extendedcell(P::Problem{2,1}, Fig::Obstacle, w::Window ;ppw::Int,dimord
     @assert WavePropBase.normal(Γ₃.dofs[1]) == [1.,0.]
     return [Γ₁, Γ₂, Γ₃]
 end
-function extendedcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Int,dimorder::Int)
+function extendedcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Any,dimorder::Int)
     N1,Nx,Ny = ndofs(P,Fig,w,ppw)
     Γ₁ = Dict{Tuple{Int,Int},NystromMesh}()
     for i = -1:1, j=-1:1
