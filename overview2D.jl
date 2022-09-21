@@ -1,8 +1,8 @@
 using PeriodicMedia
 
-correct  = false
+correct  = true
 test     = true
-plotting = false
+plotting = true
 
 # set physical parameters
 θ  = π/4.
@@ -16,10 +16,10 @@ P = Problem([k1,k2],θ,L,pol; ambdim = 2, geodim = 1)
 # set discretization parameters
 λ    = 2π/k1
 c    = 0.5
-A    = 40*λ
+A    = 20*λ
 Wpar = Window(c,A)
 
-ppw = 7
+ppw = 5
 dim = 5
 
 # create geometry

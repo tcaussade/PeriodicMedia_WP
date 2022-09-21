@@ -24,6 +24,7 @@ extendedcell,
 matrixcreator,
 rightside,
 finiterankoperator,
+gmres,
 
 energytest,
 cellsolution,

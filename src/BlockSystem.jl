@@ -10,34 +10,26 @@ function matrixcreator(P::Problem{N,1},G,Wparams::Window) where {N}
 
     MB = integralblockassembler(P,G.Γs,G.Γt)
     E  = diagonal(P,G.Γs)
-    # b  = rightside(P,G.Γs)
     W  = wgfmatrix(G.Γs,Wparams)
     
     return MB,W,E 
+end
+function matrixcreator(P::Problem{3,2}, G, Wparams::Window)
+    MB = integralblockassembler(P,G.Γs,G.Γt)
+    E  = diagonal(P,G.Γs)
+    # b  = rightside(P,G.Γs)
+    W  = wgfmatrix(G.Γs,Wparams)
+
+    return MB,W,E 
 
     # if FRO
-    #     @assert Gt[1] isa Dict
+    #     @assert Gt[1] isa Dict{Tuple{Int,Int}}
     #     MB += finiterankoperator(P,G,Gt; δ = 0.75*P.pde[1].k, H = w.c*w.A)
     # else
     #     @info "Solving without corrections"
     # end
 
-    # return (E+MB*W)\b
-end
-function solver(P::Problem{3,2}, G::Vector{NystromMesh{3,T,M,NM}}, Gt::Vector, w::Window; FRO = true) where {T,M,NM}
-    MB = integralblockassembler(P,G,Gt)
-    E  = diagonal(P,G)
-    b  = rightside(P,G)
-    W  = wgfmatrix(G,w)
-
-    if FRO
-        @assert Gt[1] isa Dict{Tuple{Int,Int}}
-        MB += finiterankoperator(P,G,Gt; δ = 0.75*P.pde[1].k, H = w.c*w.A)
-    else
-        @info "Solving without corrections"
-    end
-
-    return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-8)
+    # return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-8)
 end
 
 """ diagonal accounts the identity term that ensures second-kind Fredholmness """

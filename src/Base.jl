@@ -24,7 +24,7 @@ struct Problem{N,NP}
         dir = [sin(θ),cos(θ)]
         γ   = exp(im*k[1]*dir[1]*L)
         pol == "TE" ? η = 1.0 : η = k[2]^2/k[1]^2
-        @info "Created physical problem" dir[1] dir[2] γ η
+        @info "Created physical problem" (dir[1],dir[2]) γ η
         new{ambdim,geodim}(pde,dir,η,γ,L)
     end
     function Problem(k::Vector{Float64},θ::Vector{Float64},L::Vector{Float64}, pol::String; ambdim::Int, geodim::Int)
@@ -33,7 +33,7 @@ struct Problem{N,NP}
         dir = [sin(θ[1])*cos(θ[2]),sin(θ[1])*sin(θ[2]), cos(θ[1])]
         γ   = [exp(im*k[1]*dir[1]*L[1]),exp(im*k[1]*dir[2]*L[2])]
         pol == "TE" ? η = 1.0 : η = k[2]^2/k[1]^2
-        @info "Created physical problem" dir[1] dir[2] dir[3] γ η
+        @info "Created physical problem" (dir[1],dir[2],dir[3]) (γ[1],γ[2]) η
         new{ambdim,geodim}(pde,dir,η,γ,L)
     end
 end

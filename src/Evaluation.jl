@@ -96,8 +96,8 @@ function cellsolution(P::Problem{2,1},G::Vector,w::Window,densities::Vector{Comp
     if FRO
         h = w.A*w.c
         us += scatcorrection(P,G,mshgrid,σw; h=h, δ = 0.75*P.pde[1].k)
-    else
-        @info "Non-corrected potential"
+    # else
+    #     @info "Non-corrected potential"
     end
     Γ₁ = get(G[1],0,"")
     ut = transpotential(P,mshgrid,Γ₁)*densities[1:2*length(Γ₁.dofs)]
@@ -119,7 +119,7 @@ function cellsolution(P::Problem{3,2},G::Vector,w::Window,densities::Vector{Comp
 
     σw = lmul!(wgfmatrix(G,w),densities)
     
-    FRO ? nothing : @info "Non-corrected potential"
+    # FRO ? nothing : @info "Non-corrected potential"
     Uxz = cutcellsolution(P,vec([SVector(x,0.,z)  for x in X, z in Z]),w,σw,G; FRO = FRO)
     Uyz = cutcellsolution(P,vec([SVector(0.,y,z)  for y in Y, z in Z]),w,σw,G; FRO = FRO)
     Uxy = cutcellsolution(P,vec([SVector(x,y,0.)  for x in X, y in Y]),w,σw,G; FRO = FRO)
@@ -141,6 +141,7 @@ function cutcellsolution(P::Problem{3,2},mshgrid,w::Window,σw::Vector{ComplexF6
         xp,yp,zp = mshgrid[n]
         U[n] = Nystrom.isinside((xp,yp,zp),Γ₁) ? ut[n] :  us[n] + uinc(P,[[xp,yp,zp]])[1] # 
     end
+    @info "Cut done"
     return U
 end
 
