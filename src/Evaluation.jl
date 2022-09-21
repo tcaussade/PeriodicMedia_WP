@@ -94,8 +94,8 @@ function cellsolution(P::Problem{2,1},G::Vector,w::Window,densities::Vector{Comp
     σw = lmul!(wgfmatrix(G,w),densities)
     us = scatpotential(P,mshgrid,G)*σw
     if FRO
-        H = w.A*w.c
-        us += scatcorrection(P,G,mshgrid,σw; H=H, δ = 0.75*P.pde[1].k)
+        h = w.A*w.c
+        us += scatcorrection(P,G,mshgrid,σw; h=h, δ = 0.75*P.pde[1].k)
     else
         @info "Non-corrected potential"
     end

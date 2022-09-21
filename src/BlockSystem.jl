@@ -4,20 +4,25 @@
 
 """ solver Core function """
 
-function solver(P::Problem{N,1}, G::Vector{NystromMesh{N,T,M,NM}}, Gt::Vector, w::Window; FRO = true) where {N,T,M,NM}
-    MB = integralblockassembler(P,G)
-    E  = diagonal(P,G)
-    b  = rightside(P,G)
-    W  = wgfmatrix(G,w)
-    
-    if FRO
-        @assert Gt[1] isa Dict
-        MB += finiterankoperator(P,G,Gt; δ = 0.75*P.pde[1].k, H = w.c*w.A)
-    else
-        @info "Solving without corrections"
-    end
+# function solver(P::Problem{N,1}, G::Vector{NystromMesh{N,T,M,NM}}, Gt::Vector, w::Window; FRO = true) where {N,T,M,NM}
+  
+function matrixcreator(P::Problem{N,1},G,Wparams::Window) where {N}
 
-    return (E+MB*W)\b
+    MB = integralblockassembler(P,G.Γs,G.Γt)
+    E  = diagonal(P,G.Γs)
+    # b  = rightside(P,G.Γs)
+    W  = wgfmatrix(G.Γs,Wparams)
+    
+    return MB,W,E 
+
+    # if FRO
+    #     @assert Gt[1] isa Dict
+    #     MB += finiterankoperator(P,G,Gt; δ = 0.75*P.pde[1].k, H = w.c*w.A)
+    # else
+    #     @info "Solving without corrections"
+    # end
+
+    # return (E+MB*W)\b
 end
 function solver(P::Problem{3,2}, G::Vector{NystromMesh{3,T,M,NM}}, Gt::Vector, w::Window; FRO = true) where {T,M,NM}
     MB = integralblockassembler(P,G,Gt)
@@ -67,7 +72,7 @@ end
 
 """ integralblockassembler discretizes the integral operators """ 
 
-function integralblockassembler(P::Problem{N,1},G::Vector{NystromMesh{N,T,M,NM}}) where {N,T,M,NM}
+function integralblockassembler(P::Problem{N,1},G::Vector{NystromMesh{N,T,M,NM}},Gt::Vector) where {N,T,M,NM}
     [transmissionequation(P,G); quasiperiodicequation(P,G)]
 end
 function integralblockassembler(P::Problem{3,2},G::Vector{NystromMesh{3,T,M,NM}},Gt::Vector) where {T,M,NM}

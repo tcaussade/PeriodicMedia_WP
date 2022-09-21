@@ -18,20 +18,22 @@ struct Problem{N,NP}
     η   :: Float64
     γ   :: Union{ComplexF64,Vector{ComplexF64}}
     L   :: Union{Float64,Vector{Float64}}
-    function Problem(k::Vector{Float64},θ::Float64,L::Float64; ambdim::Int, geodim::Int)
+    function Problem(k::Vector{Float64},θ::Float64,L::Float64, pol::String; ambdim::Int, geodim::Int)
         @assert ambdim==2 && geodim==1 
         pde = [Helmholtz(dim=ambdim; k=k[1]), Helmholtz(dim=ambdim; k=k[2])]
         dir = [sin(θ),cos(θ)]
         γ   = exp(im*k[1]*dir[1]*L)
-        η   = 1.0
+        pol == "TE" ? η = 1.0 : η = k[2]^2/k[1]^2
+        @info "Created physical problem" dir[1] dir[2] γ η
         new{ambdim,geodim}(pde,dir,η,γ,L)
     end
-    function Problem(k::Vector{Float64},θ::Vector{Float64},L::Vector{Float64}; ambdim::Int, geodim::Int)
+    function Problem(k::Vector{Float64},θ::Vector{Float64},L::Vector{Float64}, pol::String; ambdim::Int, geodim::Int)
         @assert ambdim==3 && geodim==2 
         pde = [Helmholtz(dim=ambdim; k=k[1]), Helmholtz(dim=ambdim; k=k[2])]
         dir = [sin(θ[1])*cos(θ[2]),sin(θ[1])*sin(θ[2]), cos(θ[1])]
         γ   = [exp(im*k[1]*dir[1]*L[1]),exp(im*k[1]*dir[2]*L[2])]
-        η   = 1.0
+        pol == "TE" ? η = 1.0 : η = k[2]^2/k[1]^2
+        @info "Created physical problem" dir[1] dir[2] dir[3] γ η
         new{ambdim,geodim}(pde,dir,η,γ,L)
     end
 end

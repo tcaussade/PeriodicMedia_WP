@@ -41,11 +41,11 @@ end
     finiterankoperator() modifies the linear system to be solved accordingly
 """
 
-function finiterankoperator(P::Problem{2,1},G::Vector{NystromMesh{N,T,M,NM}},Gt::Vector; δ::Float64,H::Float64) where {N,T,M,NM}
+function finiterankoperator(P::Problem{2,1},G::Vector{NystromMesh{N,T,M,NM}},Gt::Vector; δ::Float64,h::Float64) where {N,T,M,NM}
     Cδ = fixdelta(P, δ)
     r₁,n₁ = [q.coords for q in G[1].dofs], [WavePropBase.normal(q) for q in G[1].dofs]
-    dR⁺, R⁺, x⁺ = linegradscat(P,Gt; H = +H)
-    dR⁻, R⁻, x⁻ = linegradscat(P,Gt; H = -H)
+    dR⁺, R⁺, x⁺ = linegradscat(P,Gt; H = +h)
+    dR⁻, R⁻, x⁻ = linegradscat(P,Gt; H = -h)
 
     len = 2*length(G[1].dofs)+2*length(G[2].dofs)
     FRO = zeros(ComplexF64,len,len)
@@ -65,7 +65,7 @@ function finiterankoperator(P::Problem{2,1},G::Vector{NystromMesh{N,T,M,NM}},Gt:
             dLₙ⁻ = dLₙ(P,x⁻,R⁻ ; n=n, sgn = -1.)
             FRO += 1/(2*im) * (dΨₙ⁻*Lₙ⁻ + Ψₙ⁻*dLₙ⁻ - dΨₙ⁺*Lₙ⁺ - Ψₙ⁺*dLₙ⁺)
         else
-            FRO += exp(im*βₙ*H)/(2*im*βₙ) * (Ψₙ⁻ * Lₙ⁻ - Ψₙ⁺ * Lₙ⁺)
+            FRO += exp(im*βₙ*h)/(2*im*βₙ) * (Ψₙ⁻ * Lₙ⁻ - Ψₙ⁺ * Lₙ⁺)
         end
     end
     return FRO
@@ -102,11 +102,11 @@ end
     scatfiniterankoperator() modifies the scattered field evaluation
 """
 
-function scatcorrection(P::Problem{2,1},G::Vector,eval,σw::Vector{ComplexF64}; H::Float64, δ::Float64)
+function scatcorrection(P::Problem{2,1},G::Vector,eval,σw::Vector{ComplexF64}; h::Float64, δ::Float64)
     @assert G[1] isa Dict # @assert G isa extendedcell
     Cδ = fixdelta(P, δ)
-    dR⁺, R⁺, x⁺ = linegradscat(P,G; H = +H)
-    dR⁻, R⁻, x⁻ = linegradscat(P,G; H = -H)
+    dR⁺, R⁺, x⁺ = linegradscat(P,G; H = +h)
+    dR⁻, R⁻, x⁻ = linegradscat(P,G; H = -h)
     fix = zeros(length(eval))
     for n in Cδ
         αₙ  = P.dir[1]*P.pde[1].k + 2π*n/P.L
@@ -123,8 +123,8 @@ function scatcorrection(P::Problem{2,1},G::Vector,eval,σw::Vector{ComplexF64}; 
             duₙ⁻ = -im*y.*uₙ⁻
             fix += 1/(2*im) * (duₙ⁻*Lₙ⁺ + uₙ⁻*dLₙ⁺ - duₙ⁺*Lₙ⁻ - uₙ⁺*dLₙ⁻)
         else
-            Cₙ⁺ = +exp(im*βₙ*H)/(2*im*βₙ) * Lₙ(P,x⁺,R⁺,dR⁺; n=n, sgn = +1.0) * σw
-            Cₙ⁻ = -exp(im*βₙ*H)/(2*im*βₙ) * Lₙ(P,x⁻,R⁻,dR⁻; n=n, sgn = -1.0) * σw
+            Cₙ⁺ = +exp(im*βₙ*h)/(2*im*βₙ) * Lₙ(P,x⁺,R⁺,dR⁺; n=n, sgn = +1.0) * σw
+            Cₙ⁻ = -exp(im*βₙ*h)/(2*im*βₙ) * Lₙ(P,x⁻,R⁻,dR⁻; n=n, sgn = -1.0) * σw
             fix += Cₙ⁺ * uₙ⁻ + Cₙ⁻ * uₙ⁺
         end
     end

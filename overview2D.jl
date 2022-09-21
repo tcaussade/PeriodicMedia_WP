@@ -1,45 +1,74 @@
 using PeriodicMedia
 
-# set physical params
-θ = π/4.
-L = 2.0
-# k = [10.68, 20.]
-# k = [10.76, 20.]
-k = [2π/(L*(1-sin(θ))), 20.]
-P = Problem(k,θ,L; ambdim = 2, geodim = 1)
+correct  = false
+test     = true
+plotting = false
 
-# Set Windowed Green function parameters
-WGF = Window(0.5,30*(2π/k[1]))
+# set physical parameters
+θ  = π/4.
+L  = 2.0
+k1 = 10.76 # 10.68
+k2 = 20.0
+pol = "TE"
 
-#create geometry
-PeriodicMedia.clear_entities!()
-Kite = PeriodicMedia.ParametricSurfaces.Kite
-Disk = PeriodicMedia.ParametricSurfaces.Disk
-Fig = Obstacle(Kite,L/4)
+P = Problem([k1,k2],θ,L,pol; ambdim = 2, geodim = 1)
 
-ppw = 8
+# set discretization parameters
+λ    = 2π/k1
+c    = 0.5
+A    = 40*λ
+Wpar = Window(c,A)
+
+ppw = 7
 dim = 5
 
-Γs = unitcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
-Γt = extendedcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
+# create geometry
 
-# Find the unkwnown densities
-ϕt = solver(P,Γs,Γt,WGF; FRO = true)
-# Asses method accuracy (note it uses triple cell configuration)
-@show energytest(P,Γt,WGF, ϕt; FRO = true, H=1.0)
-# Plot the solution over the desired cells
-X,Y,Ut = cellsolution(P,Γt,WGF,ϕt; ppw = 20, FRO = true)
-viewsolution(P,X,Y,Ut,Fig; ncell = -1:0)
+Shape = PeriodicMedia.ParametricSurfaces.Kite
+# Shape = PeriodicMedia.ParametricSurfaces.Disk
+PeriodicMedia.clear_entities!()
+Fig = Obstacle(Shape,L/4)
+Γs = unitcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
+Γt = extendedcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
+G  = (Γs=Γs, Γt=Γt)
 
-# Non - corrected
-ϕ = solver(P,Γs,Γt,WGF; FRO = false)
-@show energytest(P,Γt,WGF, ϕ; FRO = false, H=1.0)
-X,Y,U = cellsolution(P,Γt,WGF,ϕ; ppw = 20, FRO = false)
-viewsolution(P,X,Y,U,Fig; ncell = -1:0)
+@info "Geometry created" Wpar c*A
+@info "Assembling..."
 
-# Compare solutions
-viewsolution(P,X,Y,Ut-U,Fig; ncell = -0:0)
+# Solving for the scattered field
+MB,Wa,E = matrixcreator(P,G,Wpar)
+b       = rightside(P,Γs)
 
-import Plots
-Plots.heatmap(X,Y,log10.(abs.(Ut-U)), aspect_ratio = 1, clim = (-6, 0))
-Plots.plot(log10.(abs.(ϕ-ϕt)))
+δ       = 0.75*k1
+hcorr   = Wpar.c * Wpar.A
+if correct  
+    @info "Adding corrections..." δ hcorr
+    @assert Γt[1] isa Dict
+    MB += finiterankoperator(P,Γs,Γt; δ = δ , h = hcorr)
+    # Solving with corrections
+    ϕ = (E+MB*Wa)\b
+else
+    # Solving without corrections
+    ϕ = (E+MB*Wa)\b
+end
+
+he = 0.9 * hcorr
+if test  
+    @info "Computing energy" he
+    R,T = energytest(P,Γt,Wpar, ϕ; FRO = correct, h = he)
+    err = abs(R+T-1)
+    @info "Test results" err R T 
+end
+
+if plotting
+    ncell = -1:1
+    len   = length(ncell)
+    resolution = 20
+    @info "Plotting solution" len resolution
+    X,Y,U = cellsolution(P,Γt,Wpar,ϕ; ppw = resolution, FRO = correct)
+    viewsolution(P,X,Y,U,Fig; ncell = ncell)
+end
+
+# import Plots
+# Plots.heatmap(X,Y,log10.(abs.(Ut-U)), aspect_ratio = 1, clim = (-6, 0))
+# Plots.plot(log10.(abs.(ϕ-ϕt)))
