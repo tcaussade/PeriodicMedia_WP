@@ -8,7 +8,7 @@ test     = true
 plotting = true
 
 # set physical params
-θ   = [π/3.,π/4.] 
+θ   = [0.,0.] 
 L   = [0.5, 0.5]
 k1  = 9.2 
 k2  = 15.0
@@ -22,7 +22,7 @@ c    = 0.5
 A    = 10*λ
 Wpar = Window(c,A)
 
-ppw = 5
+ppw = 4
 dim = 2
 
 #create geometry
@@ -52,7 +52,7 @@ end
 
 # GMRES parameters
 res = size(MB,2)
-vbs = true
+vbs = false
 tol = 1e-6
 # Solve linear system
 ϕ,niter = gmres(E+MB*Wa,b; restart = res, verbose = vbs, reltol = tol, log = true)
@@ -62,7 +62,7 @@ he = 0.9 * hcorr
 eb = 0.0
 if test  
     @info "Computing energy" he
-    @assert he > Wpar.c * Wpar.A
+    @assert he < Wpar.c * Wpar.A
     R,T = energytest(P,Γt,Wpar, ϕ; FRO = correct, h = he)
     eb = abs(R+T-1)
     @info "Test results" eb R T 
@@ -72,7 +72,7 @@ import Plots
 p = Plots.Plot()
 if plotting
     
-    ncell = -1:1
+    ncell = -3:3
     len   = length(ncell) 
     zlims = [-2.0,4.0]
     resolution = 20

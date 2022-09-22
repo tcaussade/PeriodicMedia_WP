@@ -4,34 +4,66 @@
 using PeriodicMedia
 import Plots
 
-function windowconvergence(P::Problem, Fig::Obstacle, windowsizes)
-    ef = Vector{Float64}(undef,0)
-    et = Vector{Float64}(undef,0)
-    Threads.@threads for w in windowsizes
-        println("Solving with A = "*string(round(w/λ, digits=1))*"λ")
-        WGF = Window(0.5, w)
-        Γs = unitcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
-        Γt = extendedcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
-        # Non-corrected solution
-        ϕf = solver(P,Γs,Γt,WGF; FRO = false)
-        @show ebf = energytest(P,Γt,WGF, ϕf; FRO = false, H = 1.0)
-        push!(ef,ebf)
-        # Corrected solution
-        # ϕt = solver(P,Γs,Γt,WGF; FRO = true)
-        # @show ebt = energytest(P,Γt,WGF, ϕt; FRO = true, H = 1.0)
-        ebt = 1.0
-        push!(et,ebt)  
+function solver(E,MB,Wa,b; setup)
+    if setup == "2D1D"
+        ϕ = (E + MB*Wa)\b
+    elseif setup == "3D2D"
+        # GMRES parameters
+        res = size(MB,2)
+        vbs = false
+        tol = 1e-6
+        # Solve linear system
+        ϕ,niter = gmres(E+MB*Wa,b; restart = res, verbose = vbs, reltol = tol, log = true)
+        @info niter
     end
-    return ef,et
+    return ϕ
 end
-function viewresults(windowsizes,ef,et; semilog)
-    lbs     = ["without correction" "with correction"]
-    if semilog
-        return Plots.plot(windowsizes/λ, log10.([ef et]); title = "k="*string(round(2π/λ,digits = 2)), label = lbs)
-    else
-        return Plots.plot(log10.(windowsizes/λ), log10.([ef et]), "k="*string(round(2π/λ,digits = 2)), label = lbs)
+function accuracy(P,Γt,Wpar,ϕ; correct)
+    # @info "Computing energy" he
+    @assert he < Wpar.c * Wpar.A
+    R,T = energytest(P,Γt,Wpar, ϕ; FRO = correct, h = he)
+    eb = abs(R+T-1)
+    # @info "Test results" eb R T 
+    return eb
+end
+function run_experiment(P,Wpar; etest)
+    
+    Γs = unitcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
+    Γt = extendedcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
+    G  = (Γs=Γs, Γt=Γt)
+
+    if setup == "2D1D"
+        smat = length(Γs[1].dofs)*2+length(Γs[2].dofs)*2
+    elseif setup == "3D2D"
+        smat = length(Γs[1].dofs)*2+length(Γs[2].dofs)*2+length(Γs[4].dofs)*2
     end
-    # Plots.plot(semilog,loglog, legend = true, xlabel = "A/λ", ylabel = "EB", ylims = (-6,-1))
+    @show smat
+
+    # @info "Geometry created" Wpar Wpar.c*Wpar.A smat
+    # @info "Assembling..."
+
+    # Solving for the scattered field
+    MB,Wa,E = matrixcreator(P,G,Wpar)
+    b       = rightside(P,Γs)
+
+    if etest == true
+        ϕ = solver(E,MB,Wa,b; setup)
+        ebf = accuracy(P,Γt,Wpar,ϕ; correct = false)
+    end
+
+    # Compute again with corrections
+    hcorr = Wpar.c * Wpar.A
+    # @info "Adding corrections..." δ hcorr
+    MB += finiterankoperator(P,Γs,Γt; δ = δ , h = hcorr)
+
+    ϕ = solver(E,MB,Wa,b; setup)
+    if etest == true
+        ebt = accuracy(P,Γt,Wpar,ϕ; correct = true)
+    else
+        return ϕ
+    end
+
+    return ebf,ebt
 end
 
 """ 
@@ -39,64 +71,69 @@ end
     - setup = "2D1D"
     - setup = "3D2D"
 """
-setup = "3D2D"
-p = Vector{Plots.Plot}(undef,3)
 
+global setup = "3D2D"
+
+# set physical params and geometry
+PeriodicMedia.clear_entities!()
 if setup == "2D1D"
-    θ = π/4.
-    L = 2.0
-    k1 = [10.68, 2π/(L*(1-sin(θ))), 10.76] # k2 = 20.
-    # Shape = PeriodicMedia.ParametricSurfaces.Kite
+    θ   = π/4.
+    L   = 2.0
+    k1  = 10.72 
+    k2  = 20.0
+    pol = "TE"
+    P = Problem([k1,k2],θ,L,pol; ambdim = 2, geodim = 1)
+
     Shape = PeriodicMedia.ParametricSurfaces.Disk
     Fig = Obstacle(Shape,L/4)
-
-    ####################################
-    global ppw = 8
-    global dim = 5
-    ####################################
-
-    Threads.@threads for i = 1:3
-        P = Problem([k1[i],20.],θ,L; ambdim = 2, geodim = 1)
-
-        ####################################
-        global λ = 2π/k1[i]
-        windowsizes = λ * collect(10:5:40)
-        ####################################
-
-        ef,et = windowconvergence(P,Fig,windowsizes)
-        p[i] = viewresults(windowsizes,ef,et; semilog = true) 
-    end 
-    Plots.savefig(  Plots.plot(p[1],p[2],p[3], layout = Plots.@layout([A B C]), 
-                    xlabel = "A/λ", ylabel = "EB", # ylims = (-6,-1),
-                    size = (1500,800)), "2d1d.png")
-
 elseif setup == "3D2D"
-    k1 = [9.0, 9.199221756451442, 9.5]
-    θ = [π/4.,π/4.]
-    L = [0.5, 0.5]
+    θ   = [0.,0.] 
+    L   = [0.5, 0.5]
+    k1  = 9.2 
+    k2  = 15.0
+    pol = "TE"
+    P = Problem([k1,k2],θ,L,pol; ambdim = 3, geodim = 2)
+
     Shape = PeriodicMedia.ParametricSurfaces.Sphere
     Fig = Obstacle(Shape,minimum(L)/4)
-
-    ####################################
-    global ppw = 1
-    global dim = 1
-    ####################################
-
-    
-    Threads.@threads for i = 1:3
-        P = Problem([k1[i],17.],θ,L; ambdim = 3, geodim = 2)
-
-        ####################################
-        global λ = 2π/k1[i]
-        windowsizes = λ * collect(10:10:30)
-        ####################################
-
-        ef,et = windowconvergence(P,Fig,windowsizes)
-        p[i] = viewresults(windowsizes,ef,et; semilog = true) 
-    end
-    Plots.savefig(  Plots.plot(p[1],p[2],p[3], layout = Plots.@layout([A B C]), 
-                    xlabel = "A/λ", ylabel = "EB", ylims = (-6,0),
-                    size = (1500,800)), "3d2d.png") 
 end
+
+global ppw = 1
+global dim = 1
+
+# correction parameters
+global δ    = 2*k1
+global he   = 1.0
+
+# Window sizes (normalized to λ)
+Asizes = collect(10:10:30)
+errors = []
+
+iter = 1
+for Ap in Asizes
+    # set discretization parameters
+    @info "Iteration: "*string(iter)*"/"*string(length(Asizes)) Ap
+    global λ    = 2π/k1
+    c    = 0.3
+    A    = Ap * λ
+    Wpar = Window(c,A)
+
+    @show ebf,ebt = run_experiment(P,Wpar; etest = true)
+    push!(errors,[ebf,ebt])
+
+    iter += 1
+end
+
+lbs   = ["without correction" "with correction"]
+ef,et = [e[1] for e in errors],[e[2] for e in errors]
+
+p = Plots.plot(title = "k="*string(P.pde[1].k))
+p = Plots.plot!(Asizes, log10.([ef et]); label = lbs)
+
+if savefig == true
+    namefig = setup*string(".png")
+    Plots.savefig(p, namefig) 
+end
+
 
 

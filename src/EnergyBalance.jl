@@ -40,8 +40,8 @@ function energytest(P::Problem{3,2},G::Vector,w::Window,σ::Vector{ComplexF64}; 
     u2 = scatpotential(P,low,G)*σw
 
     if FRO
-        u1 += scatcorrection(P,G,[q.coords for q in upp.dofs],σw; H=+h, δ = 0.75*P.pde[1].k)
-        u2 += scatcorrection(P,G,[q.coords for q in low.dofs],σw; H=+h, δ = 0.75*P.pde[1].k)
+        u1 += scatcorrection(P,G,[q.coords for q in upp.dofs],σw; h=+h, δ = 0.75*P.pde[1].k)
+        u2 += scatcorrection(P,G,[q.coords for q in low.dofs],σw; h=+h, δ = 0.75*P.pde[1].k)
     # else
     #     @info "Non corrected energy balance test"
     end
@@ -84,7 +84,7 @@ function energytest(P::Problem{3,2},h::Float64,u1::Vector{ComplexF64},u2::Vector
         αₘ₁ = α₁ + n1*2π/P.L[1]
         αₘ₂ = α₂ + n2*2π/P.L[2]
         if P.pde[1].k^2 ≥ abs(αₘ₁)^2 + abs(αₘ₂)^2
-            βₙ = sqrt((P.pde[1].k^2 - αₘ₁^2 - αₘ₂^2 ))
+            βₙ = sqrt(complex(P.pde[1].k^2 - αₘ₁^2 - αₘ₂^2 ))
             B⁺ = exp(-im*βₙ*h)/P.L[1]/P.L[2] * sum( u1.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
             B⁻ = exp(-im*βₙ*h)/P.L[1]/P.L[2] * sum( u2.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
             if n1 == 0 && n2 == 0

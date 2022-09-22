@@ -71,15 +71,15 @@ function finiterankoperator(P::Problem{2,1},G::Vector{NystromMesh{N,T,M,NM}},Gt:
     return FRO
 end
 
-function finiterankoperator(P::Problem{3,2},G::Vector{NystromMesh{N,T,M,NM}},Gt::Vector; δ::Float64,H::Float64) where {N,T,M,NM}
+function finiterankoperator(P::Problem{3,2},G::Vector{NystromMesh{N,T,M,NM}},Gt::Vector; δ::Float64,h::Float64) where {N,T,M,NM}
     Cδ = fixdelta(P, δ)
     r₁,n₁ = [q.coords for q in G[1].dofs], [WavePropBase.normal(q) for q in G[1].dofs]
-    dR⁺, R⁺, x⁺ = planegradscat(P,Gt; H = +H)
-    dR⁻, R⁻, x⁻ = planegradscat(P,Gt; H = -H)
+    dR⁺, R⁺, x⁺ = planegradscat(P,Gt; H = +h)
+    dR⁻, R⁻, x⁻ = planegradscat(P,Gt; H = -h)
     len = 2*length(G[1].dofs)+2*length(G[2].dofs)+2*length(G[4].dofs)
     FRO = zeros(ComplexF64,len,len)
     for n in Cδ
-        _,_,βₙ = seriesconstant(P,(n1,n2))
+        _,_,βₙ = seriesconstant(P,(n[1],n[2]))
 
         Ψₙ⁺ = Ψₙ(P,G,r₁,n₁; n=n, sgn = +1.)
         Ψₙ⁻ = Ψₙ(P,G,r₁,n₁; n=n, sgn = -1.)
@@ -91,7 +91,7 @@ function finiterankoperator(P::Problem{3,2},G::Vector{NystromMesh{N,T,M,NM}},Gt:
             # error("not implemented")
             @warn "not implemented"
         else
-            FRO += exp(im*βₙ*H)/(2*im*βₙ) * (Ψₙ⁻ * Lₙ⁻ - Ψₙ⁺ * Lₙ⁺)
+            FRO += exp(im*βₙ*h)/(2*im*βₙ) * (Ψₙ⁻ * Lₙ⁻ - Ψₙ⁺ * Lₙ⁺)
         end
     end
     return FRO
@@ -131,25 +131,25 @@ function scatcorrection(P::Problem{2,1},G::Vector,eval,σw::Vector{ComplexF64}; 
     return fix
 end
 
-function scatcorrection(P::Problem{3,2},G::Vector,eval,σw::Vector{ComplexF64}; H::Float64, δ::Float64)
+function scatcorrection(P::Problem{3,2},G::Vector,eval,σw::Vector{ComplexF64}; h::Float64, δ::Float64)
     @assert G[1] isa Dict{Tuple{Int,Int}} # @assert G isa extendedcell
     Cδ = fixdelta(P,δ)
-    dR⁺, R⁺, x⁺ = planegradscat(P,G; H = +H)
-    dR⁻, R⁻, x⁻ = planegradscat(P,G; H = -H)
+    dR⁺, R⁺, x⁺ = planegradscat(P,G; H = +h)
+    dR⁻, R⁻, x⁻ = planegradscat(P,G; H = -h)
     fix = zeros(length(eval))
     for n in Cδ
         # αₙ₁ = P.dir[1]*P.pde[1].k + 2π*n[1]/P.L[1]
         # αₙ₂ = P.dir[2]*P.pde[1].k + 2π*n[2]/P.L[2]
         # βₙ  = sqrt(complex(P.pde[1].k^2-αₙ₁^2-αₙ₂^2))
-        αₙ₁,αₙ₂,βₙ = seriesconstant(P,(n1,n2))
+        αₙ₁,αₙ₂,βₙ = seriesconstant(P,(n[1],n[2]))
         uₙ⁺ = [exp.(im*αₙ₁*r[1] + im*αₙ₂*r[2] + im*βₙ*r[3]) for r in eval]
         uₙ⁻ = [exp.(im*αₙ₂*r[1] + im*αₙ₂*r[2] - im*βₙ*r[3]) for r in eval]
         if abs(βₙ) < 1e-8
             error("RW anomaly")
         else
             # Check results
-            Cₙ⁺ = +exp(im*βₙ*H)/(2*im*βₙ) * Lₙ(P,x⁺,R⁺,dR⁺; n=n, sgn = +1.0) * σw
-            Cₙ⁻ = -exp(im*βₙ*H)/(2*im*βₙ) * Lₙ(P,x⁻,R⁻,dR⁻; n=n, sgn = -1.0) * σw
+            Cₙ⁺ = +exp(im*βₙ*h)/(2*im*βₙ) * Lₙ(P,x⁺,R⁺,dR⁺; n=n, sgn = +1.0) * σw
+            Cₙ⁻ = -exp(im*βₙ*h)/(2*im*βₙ) * Lₙ(P,x⁻,R⁻,dR⁻; n=n, sgn = -1.0) * σw
             fix += Cₙ⁺ * uₙ⁻ + Cₙ⁻ * uₙ⁺
         end
     end
@@ -181,7 +181,7 @@ function Lₙ(P::Problem{2,1},x, R::Matrix{ComplexF64},dR::Matrix{ComplexF64}; n
     exp.(im*αₙ*x)' * (dR - sign(sgn) * im*βₙ* R) * P.L/length(x) /P.L
 end
 function Lₙ(P::Problem{3,2}, x, R::Matrix{ComplexF64},dR::Matrix{ComplexF64}; n::Tuple{Int64, Int64}, sgn)
-    _,_,βₙ = seriesconstant(P,(n1,n2))
+    αₙ₁,αₙ₂,βₙ = seriesconstant(P,(n[1],n[2]))
     x1  = [q[1] for q in x]
     x2  = [q[2] for q in x]
     exp.(im*αₙ₁*x1+im*αₙ₂*x2)' * (dR - sign(sgn)*im*βₙ*R) * P.L[1]*P.L[2]/prod(size(x)) /P.L[1]/P.L[2]
@@ -202,7 +202,7 @@ function Ψₙ(P::Problem{2,1},G::Vector,r1,n1; n::Int, sgn)
 end
 
 function Ψₙ(P::Problem{3,2},G::Vector,r1,n1; n::Tuple{Int,Int}, sgn)
-    αₙ₁,αₙ₂,βₙ = seriesconstant(P,(n1,n2))
+    αₙ₁,αₙ₂,βₙ = seriesconstant(P,(n[1],n[2]))
     uₙ = [exp(im*(αₙ₁*r[1]+αₙ₂*r[2] - sign(sgn)*βₙ*r[3])) for r in r1] # uₙ|Γ₁
     duₙ = im*[(αₙ₁*ν[1]+αₙ₂*ν[2] - sign(sgn)*βₙ*ν[3]) for ν in n1] .* uₙ # duₙ|Γ₁
     [uₙ; duₙ; zeros(2*length(G[2].dofs)+2*length(G[4].dofs))]
