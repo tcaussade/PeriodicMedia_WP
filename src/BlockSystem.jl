@@ -4,27 +4,32 @@
 
 """ solver Core function """
 
-function solver(P::Problem{N,1}, G::Vector{NystromMesh{N,T,M,NM}}, Gt::Vector, w::Window; FRO = true) where {N,T,M,NM}
-    MB = integralblockassembler(P,G)
-    E  = diagonal(P,G)
-    b  = rightside(P,G)
-    W  = wgfmatrix(G,w)
-    
-    if FRO
-        @assert Gt[1] isa Dict
-        MB += finiterankoperator(P,G,Gt; δ = 0.75*P.pde[1].k, H = w.c*w.A)
-    else
-        @info "Solving without corrections"
-    end
+# function solver(P::Problem{N,1}, G::Vector{NystromMesh{N,T,M,NM}}, Gt::Vector, w::Window; FRO = true) where {N,T,M,NM}
+  
+function matrixcreator(P::Problem{N,1},G,Wparams::Window) where {N}
 
-    return (E+MB*W)\b
+    MB = integralblockassembler(P,G.Γs,G.Γt)
+    E  = diagonal(P,G.Γs)
+    W  = wgfmatrix(G.Γs,Wparams)
+    
+    return MB,W,E 
 end
-function solver(P::Problem{3,2}, G::Vector{NystromMesh{3,T,M,NM}}, Gt::Vector, w::Window) where {T,M,NM}
-    MB = integralblockassembler(P,G,Gt)
-    E  = diagonal(P,G)
-    b  = rightside(P,G)
-    W  = wgfmatrix(G,w)
-    return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-12)
+function matrixcreator(P::Problem{3,2}, G, Wparams::Window)
+    MB = integralblockassembler(P,G.Γs,G.Γt)
+    E  = diagonal(P,G.Γs)
+    # b  = rightside(P,G.Γs)
+    W  = wgfmatrix(G.Γs,Wparams)
+
+    return MB,W,E 
+
+    # if FRO
+    #     @assert Gt[1] isa Dict{Tuple{Int,Int}}
+    #     MB += finiterankoperator(P,G,Gt; δ = 0.75*P.pde[1].k, H = w.c*w.A)
+    # else
+    #     @info "Solving without corrections"
+    # end
+
+    # return gmres(E+MB*W,b; restart = size(MB,2), verbose = true, reltol = 1e-8)
 end
 
 """ diagonal accounts the identity term that ensures second-kind Fredholmness """
@@ -59,7 +64,7 @@ end
 
 """ integralblockassembler discretizes the integral operators """ 
 
-function integralblockassembler(P::Problem{N,1},G::Vector{NystromMesh{N,T,M,NM}}) where {N,T,M,NM}
+function integralblockassembler(P::Problem{N,1},G::Vector{NystromMesh{N,T,M,NM}},Gt::Vector) where {N,T,M,NM}
     [transmissionequation(P,G); quasiperiodicequation(P,G)]
 end
 function integralblockassembler(P::Problem{3,2},G::Vector{NystromMesh{3,T,M,NM}},Gt::Vector) where {T,M,NM}
@@ -147,8 +152,10 @@ function xquasiperiodicequation(P::Problem{3,2}, G::Vector, opD, opN)
     Mp1 = lmul!(-P.γ[1],axpy!(P.γ[1]^3,D21,D31))
     Mp2 = lmul!(P.η*P.γ[1],axpy!(P.γ[1]^3,N21,N31))
 
-    D23,N23 = Matrix(opD(P.pde[1],Γ₂,Γ₃)), Matrix(opN(P.pde[1],Γ₂,Γ₃))
-    D32,N32 = Matrix(opD(P.pde[1],Γ₃,Γ₂)), Matrix(opN(P.pde[1],Γ₃,Γ₂))
+    # D23,N23 = Matrix(opD(P.pde[1],Γ₂,Γ₃)), Matrix(opN(P.pde[1],Γ₂,Γ₃))
+    # D32,N32 = Matrix(opD(P.pde[1],Γ₃,Γ₂)), Matrix(opN(P.pde[1],Γ₃,Γ₂))
+    D23,N23 = superoperator(P.pde[1],Γ₂,G[3],P.γ[2],opD), superoperator(P.pde[1],Γ₂,G[3],P.γ[2],opN)
+    D32,N32 = superoperator(P.pde[1],Γ₃,G[2],P.γ[2],opD), superoperator(P.pde[1],Γ₃,G[2],P.γ[2],opN)
     Mp3 = axpby!(P.γ[1]^6,D23,-1.,D32)
     Mp4 = axpy!(-P.γ[1]^6,N23,N32)
 
@@ -195,8 +202,10 @@ function yquasiperiodicequation(P::Problem{3,2},G::Vector,opD,opN)
     # Mp4 = lmul!(-P.γ[2]/P.γ[1],axpy!(-P.γ[1]^3,tn2,tn1))
     Mp4 = axpby!(+P.γ[2]/P.γ[1],tn1, -P.γ[2]*P.γ[1]^2,tn2)
 
-    D45,N45 = Matrix(opD(P.pde[1],Γ₄,Γ₅)), Matrix(opN(P.pde[1],Γ₄,Γ₅))
-    D54,N54 = Matrix(opD(P.pde[1],Γ₅,Γ₄)), Matrix(opN(P.pde[1],Γ₅,Γ₄))
+    # D45,N45 = Matrix(opD(P.pde[1],Γ₄,Γ₅)), Matrix(opN(P.pde[1],Γ₄,Γ₅))
+    # D54,N54 = Matrix(opD(P.pde[1],Γ₅,Γ₄)), Matrix(opN(P.pde[1],Γ₅,Γ₄))
+    D45,N45 = superoperator(P.pde[1],Γ₄,G[5],P.γ[1],opD), superoperator(P.pde[1],Γ₄,G[5],P.γ[1],opN)
+    D54,N54 = superoperator(P.pde[1],Γ₅,G[4],P.γ[1],opD), superoperator(P.pde[1],Γ₅,G[4],P.γ[1],opN)
     Mp5 = axpby!(P.γ[2]^6,D45,-1.,D54)
     Mp6 = axpy!(-P.γ[2]^6,N45,N54)
 

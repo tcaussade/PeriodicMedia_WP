@@ -1,52 +1,148 @@
+# /home/thomas/Downloads/julia-1.7.2/bin/julia
+# import Pkg; Pkg.activate("/home/thomas/PeriodicMedia_WP")
+
 using PeriodicMedia
 
-setup = "2D1D"
+function solver(E,MB,Wa,b; setup)
+    if setup == "2D1D"
+        ϕ = (E + MB*Wa)\b
+    elseif setup == "3D2D"
+        # GMRES parameters
+        res = size(MB,2)
+        vbs = false
+        tol = 1e-6
+        # Solve linear system
+        ϕ,niter = gmres(E+MB*Wa,b; restart = res, verbose = vbs, reltol = tol, log = true)
+        @info niter
+    end
+    return ϕ
+end
+function accuracy(P,Γt,Wpar,ϕ; correct)
+    # @info "Computing energy" he
+    @assert he < Wpar.c * Wpar.A
+    R,T = energytest(P,Γt,Wpar, ϕ; FRO = correct, h = he)
+    eb = abs(R+T-1)
+    # @info "Test results" eb R T 
+    return eb
+end
+function run_experiment(P,Wpar; etest, add_correct = true)
+    
+    Γs = unitcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
+    Γt = extendedcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
+    G  = (Γs=Γs, Γt=Γt)
 
+    if setup == "2D1D"
+        smat = length(Γs[1].dofs)*2+length(Γs[2].dofs)*2
+    elseif setup == "3D2D"
+        smat = length(Γs[1].dofs)*2+length(Γs[2].dofs)*2+length(Γs[4].dofs)*2
+    end
+    @show smat
+
+    # @info "Geometry created" Wpar Wpar.c*Wpar.A smat
+    # @info "Assembling..."
+
+    # Solving for the scattered field
+    MB,Wa,E = matrixcreator(P,G,Wpar)
+    b       = rightside(P,Γs)
+
+    if etest == true
+        ϕ = solver(E,MB,Wa,b; setup)
+        ebf = accuracy(P,Γt,Wpar,ϕ; correct = false)
+    end
+
+    if ~add_correct
+        return ebf
+    end
+
+    # Compute again with corrections
+    hcorr = Wpar.c * Wpar.A
+    # @info "Adding corrections..." δ hcorr
+    MB += finiterankoperator(P,Γs,Γt; δ = δ , h = hcorr)
+
+    ϕ = solver(E,MB,Wa,b; setup)
+    if etest == true
+        ebt = accuracy(P,Γt,Wpar,ϕ; correct = true)
+    else
+        return ϕ
+    end
+
+    return ebf,ebt
+end
+
+""" 
+    set desired experiment
+    - setup = "2D1D"
+    - setup = "3D2D"
+
+    save figure: true/false
+"""
+
+global setup = "2D1D"
+save         = true
+
+# set physical params and geometry
+PeriodicMedia.clear_entities!()
 if setup == "2D1D"
-    θ = π/4.
-    L = 2.0
-    # k = [10.68, 20.]
-    # k = [10.76, 20.]
-    k = [2π/(L*(1-sin(θ))), 20.]
-    P = Problem(k,θ,L; ambdim = 2, geodim = 1)
+    θ   = π/4.
+    L   = 2.0
+    k1  = 10.58
+    k2  = 20.0
+    pol = "TE"
+    P = Problem([k1,k2],θ,L,pol; ambdim = 2, geodim = 1)
+
     Shape = PeriodicMedia.ParametricSurfaces.Kite
     # Shape = PeriodicMedia.ParametricSurfaces.Disk
     Fig = Obstacle(Shape,L/4)
 elseif setup == "3D2D"
-    k = [4.5, 8.0]
-    θ = [π/4.,π/4.]
-    L = [1.0, 1.0]
-    P = Problem(k,θ,L; ambdim = 3, geodim = 2)
+    θ   = [0.,0.] 
+    L   = [0.5, 0.5]
+    k1  = 9.2 
+    k2  = 15.0
+    pol = "TE"
+    P = Problem([k1,k2],θ,L,pol; ambdim = 3, geodim = 2)
+
     Shape = PeriodicMedia.ParametricSurfaces.Sphere
-    Fig = Obstacle(Sphere,minimum(L)/4)
+    Fig = Obstacle(Shape,minimum(L)/4)
 end
 
-# Mesh parameters
-ppw = 8
-dim = 5
+global ppw = 10
+global dim = 4
 
-# Experiment
-λ = 2π/k[1]
-windowsizes = λ * collect(10:1:30)
-ef = Vector{Float64}(undef,0)
-et = Vector{Float64}(undef,0)
-for w in windowsizes
-    println("Solving with A = "*string(round(w*k[1]/2π,digits=1))*"λ")
-    WGF = Window(0.5, w)
-    Γs = unitcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
-    Γt = extendedcell(P,Fig, WGF; ppw = ppw, dimorder = dim)
-    # Non-corrected solution
-    ϕf = solver(P,Γs,Γt,WGF; FRO = false)
-    @show ebf = energytest(P,Γt,WGF, ϕf; FRO = false, H = 1.0)
-    push!(ef,ebf)
-    # Corrected solution
-    ϕt = solver(P,Γs,Γt,WGF; FRO = true)
-    @show ebt = energytest(P,Γt,WGF, ϕt; FRO = true, H = 1.0)
-    push!(et,ebt)  
+# correction parameters
+global δ    = 2*k1
+global he   = 1.0
+
+# Window sizes (normalized to λ)
+Asizes = collect(8:1:30)
+errors = []
+
+for Ap in Asizes
+    # set discretization parameters
+    @info Ap
+    global λ = 2π/k1
+    c    = 0.3
+    A    = Ap * λ
+    Wpar = Window(c,A)
+
+    # @show ebf,ebt = run_experiment(P,Wpar; etest = true)
+    # push!(errors,[ebf,ebt])
+    @show ebf = run_experiment(P,Wpar; etest = true, add_correct = false)
+    push!(errors, ebf)
 end
 
+################# Plot convergence #################
 import Plots
-lbs     = ["without correction" "with correction"]
-semilog = Plots.plot(windowsizes/λ, log10.([ef et]); title = "Semilog", label = lbs)
-loglog  = Plots.plot(log10.(windowsizes/λ), log10.([ef et]), title = "Log-Log", label = lbs)
-Plots.plot(semilog,loglog, legend = true, xlabel = "A/λ", ylabel = "EB", ylims = (-6,-1))
+lbs   = ["without correction" "with correction"]
+p = Plots.plot(title = "k="*string(P.pde[1].k))
+
+# ef,et = [e[1] for e in errors],[e[2] for e in errors]
+# p = Plots.plot!(Asizes, log10.([ef et]); label = lbs)
+p = Plots.plot!(Asizes, log10.(errors); label = lbs[1])
+
+if save == true
+    namefig = setup*string(".png")
+    Plots.savefig(p, namefig) 
+end
+
+
+
