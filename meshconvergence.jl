@@ -4,6 +4,7 @@
 using PeriodicMedia
 import Plots
 
+error("pending update...")
 
 function meshconvergence(P::Problem,WGF::Window, meshsizes, dim)
 

@@ -2,7 +2,6 @@
 # import Pkg; Pkg.activate("/home/thomas/PeriodicMedia_WP")
 
 using PeriodicMedia
-import Plots
 
 function solver(E,MB,Wa,b; setup)
     if setup == "2D1D"
@@ -26,7 +25,7 @@ function accuracy(P,Γt,Wpar,ϕ; correct)
     # @info "Test results" eb R T 
     return eb
 end
-function run_experiment(P,Wpar; etest)
+function run_experiment(P,Wpar; etest, add_correct = true)
     
     Γs = unitcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
     Γt = extendedcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
@@ -51,6 +50,10 @@ function run_experiment(P,Wpar; etest)
         ebf = accuracy(P,Γt,Wpar,ϕ; correct = false)
     end
 
+    if ~add_correct
+        return ebf
+    end
+
     # Compute again with corrections
     hcorr = Wpar.c * Wpar.A
     # @info "Adding corrections..." δ hcorr
@@ -70,21 +73,25 @@ end
     set desired experiment
     - setup = "2D1D"
     - setup = "3D2D"
+
+    save figure: true/false
 """
 
-global setup = "3D2D"
+global setup = "2D1D"
+save         = true
 
 # set physical params and geometry
 PeriodicMedia.clear_entities!()
 if setup == "2D1D"
     θ   = π/4.
     L   = 2.0
-    k1  = 10.72 
+    k1  = 10.58
     k2  = 20.0
     pol = "TE"
     P = Problem([k1,k2],θ,L,pol; ambdim = 2, geodim = 1)
 
-    Shape = PeriodicMedia.ParametricSurfaces.Disk
+    Shape = PeriodicMedia.ParametricSurfaces.Kite
+    # Shape = PeriodicMedia.ParametricSurfaces.Disk
     Fig = Obstacle(Shape,L/4)
 elseif setup == "3D2D"
     θ   = [0.,0.] 
@@ -98,39 +105,41 @@ elseif setup == "3D2D"
     Fig = Obstacle(Shape,minimum(L)/4)
 end
 
-global ppw = 1
-global dim = 1
+global ppw = 10
+global dim = 4
 
 # correction parameters
 global δ    = 2*k1
 global he   = 1.0
 
 # Window sizes (normalized to λ)
-Asizes = collect(10:10:30)
+Asizes = collect(8:1:30)
 errors = []
 
-iter = 1
 for Ap in Asizes
     # set discretization parameters
-    @info "Iteration: "*string(iter)*"/"*string(length(Asizes)) Ap
-    global λ    = 2π/k1
+    @info Ap
+    global λ = 2π/k1
     c    = 0.3
     A    = Ap * λ
     Wpar = Window(c,A)
 
-    @show ebf,ebt = run_experiment(P,Wpar; etest = true)
-    push!(errors,[ebf,ebt])
-
-    iter += 1
+    # @show ebf,ebt = run_experiment(P,Wpar; etest = true)
+    # push!(errors,[ebf,ebt])
+    @show ebf = run_experiment(P,Wpar; etest = true, add_correct = false)
+    push!(errors, ebf)
 end
 
+################# Plot convergence #################
+import Plots
 lbs   = ["without correction" "with correction"]
-ef,et = [e[1] for e in errors],[e[2] for e in errors]
-
 p = Plots.plot(title = "k="*string(P.pde[1].k))
-p = Plots.plot!(Asizes, log10.([ef et]); label = lbs)
 
-if savefig == true
+# ef,et = [e[1] for e in errors],[e[2] for e in errors]
+# p = Plots.plot!(Asizes, log10.([ef et]); label = lbs)
+p = Plots.plot!(Asizes, log10.(errors); label = lbs[1])
+
+if save == true
     namefig = setup*string(".png")
     Plots.savefig(p, namefig) 
 end
