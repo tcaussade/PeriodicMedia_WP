@@ -4,6 +4,7 @@
 using PeriodicMedia
 
 function solver(E,MB,Wa,b)
+    # return (E+MB*Wa)\b
     # GMRES parameters
     res = size(MB,2)
     vbs = false
@@ -16,16 +17,21 @@ end
 function nonradiative(P,G,σw; h)
     dR⁺, R⁺, x⁺ = PeriodicMedia.planegradscat(P,G; H = +h)
     dR⁻, R⁻, x⁻ = PeriodicMedia.planegradscat(P,G; H = -h)
+    # dR⁺, R⁺, x⁺ = PeriodicMedia.linegradscat(P,G; H = +h)
+    # dR⁻, R⁻, x⁻ = PeriodicMedia.linegradscat(P,G; H = -h)
     C⁺ = []
     C⁻ = []
+    betas = []
     for n ∈ Cδ
         _,_,βₙ = PeriodicMedia.seriesconstant(P,(n[1],n[2]))
+        # _,βₙ = PeriodicMedia.seriesconstant(P,n)
         Cₙ⁺ = +exp(im*βₙ*h)/(2*im*βₙ) * PeriodicMedia.Lₙ(P,x⁺,R⁺,dR⁺; n=n, sgn = +1.0) * σw
         Cₙ⁻ = -exp(im*βₙ*h)/(2*im*βₙ) * PeriodicMedia.Lₙ(P,x⁻,R⁻,dR⁻; n=n, sgn = -1.0) * σw
         push!(C⁺,Cₙ⁺)
         push!(C⁻,Cₙ⁻)
+        push!(betas,βₙ)
     end
-    return C⁺,C⁻
+    return betas, C⁺,C⁻
 end
 function run_experiment(P,Wpar)
     
@@ -40,19 +46,23 @@ function run_experiment(P,Wpar)
     b       = rightside(P,Γs)
     ϕ       = solver(E,MB,Wa,b)
 
-    C⁺,C⁻ = nonradiative(P,Γt,Wa*ϕ; h = he)
+    betas, C⁺,C⁻ = nonradiative(P,Γt,Wa*ϕ; h = he)
 end
 
 PeriodicMedia.clear_entities!()
 
-θ   = [0.,0.] 
+θ   = [π/4.,π/4.] 
 L   = [0.5, 0.5]
+# θ = 0.0
+# L = 0.5
 k1  = 8.8 
 k2  = 15.0
 pol = "TE"
 P = Problem([k1,k2],θ,L,pol; ambdim = 3, geodim = 2)
+# P = Problem([k1,k2],θ,L,pol; ambdim = 2, geodim = 1)
 
 Shape = PeriodicMedia.ParametricSurfaces.Sphere
+# Shape = PeriodicMedia.ParametricSurfaces.Kite
 Fig = Obstacle(Shape,minimum(L)/4)
 
 
@@ -69,6 +79,7 @@ global Cδ = PeriodicMedia.fixdelta(P,δ)
 Asizes = collect(3:1:5)
 cp  = Matrix{Float64}(undef,length(Cδ),length(Asizes))
 cm  = Matrix{Float64}(undef,length(Cδ),length(Asizes))
+betas = Vector{ComplexF64}(undef,length(Cδ))
 
 for (i,Ap) in enumerate(Asizes)
     # set discretization parameters
@@ -78,9 +89,13 @@ for (i,Ap) in enumerate(Asizes)
     A    = Ap * λ
     Wpar = Window(c,A)
 
-    c⁺,c⁻ = run_experiment(P,Wpar)
+    betas, c⁺,c⁻ = run_experiment(P,Wpar)
     cp[:,i] .= abs.(c⁺)
     cm[:,i] .= abs.(c⁻)
+end
+
+for (i,n) in enumerate(Cδ)
+    @show (n,betas[i])
 end
 
 ################# Plot convergence #################
