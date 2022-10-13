@@ -77,7 +77,7 @@ end
     save figure: true/false
 """
 
-global setup = "2D1D"
+global setup = "3D2D"
 save         = true
 
 # set physical params and geometry
@@ -90,14 +90,14 @@ if setup == "2D1D"
     pol = "TE"
     P = Problem([k1,k2],θ,L,pol; ambdim = 2, geodim = 1)
 
-    Shape = PeriodicMedia.ParametricSurfaces.Kite
-    # Shape = PeriodicMedia.ParametricSurfaces.Disk
+    # Shape = PeriodicMedia.ParametricSurfaces.Kite
+    Shape = PeriodicMedia.ParametricSurfaces.Disk
     Fig = Obstacle(Shape,L/4)
 elseif setup == "3D2D"
     θ   = [0.,0.] 
     L   = [0.5, 0.5]
-    k1  = 9.2 
-    k2  = 15.0
+    k1  = 8.8 
+    k2  = 14.0
     pol = "TE"
     P = Problem([k1,k2],θ,L,pol; ambdim = 3, geodim = 2)
 
@@ -105,15 +105,15 @@ elseif setup == "3D2D"
     Fig = Obstacle(Shape,minimum(L)/4)
 end
 
-global ppw = 10
+global ppw = 7
 global dim = 4
 
 # correction parameters
 global δ    = 2*k1
-global he   = 1.0
+global he   = 0.25
 
 # Window sizes (normalized to λ)
-Asizes = collect(8:1:30)
+Asizes = collect(3:1:5)
 errors = []
 
 for Ap in Asizes
@@ -137,7 +137,7 @@ p = Plots.plot(title = "k="*string(P.pde[1].k))
 
 # ef,et = [e[1] for e in errors],[e[2] for e in errors]
 # p = Plots.plot!(Asizes, log10.([ef et]); label = lbs)
-p = Plots.plot!(Asizes, log10.(errors); label = lbs[1])
+p = Plots.plot!(log10.(Asizes), log10.(errors); label = lbs[1])
 
 if save == true
     namefig = setup*string(".png")

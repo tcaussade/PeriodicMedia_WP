@@ -51,7 +51,8 @@ end
 
 PeriodicMedia.clear_entities!()
 
-θ   = [π/4.,π/4.] 
+# θ   = [π/4.,π/4.] 
+θ = [0.,0.]
 L   = [0.5, 0.5]
 # θ = 0.0
 # L = 0.5
@@ -66,8 +67,8 @@ Shape = PeriodicMedia.ParametricSurfaces.Sphere
 Fig = Obstacle(Shape,minimum(L)/4)
 
 
-global ppw = 2
-global dim = 1
+global ppw = 3
+global dim = 2
 
 # correction parameters
        δ    = 1.5*k1
