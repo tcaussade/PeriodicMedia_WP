@@ -78,7 +78,7 @@ end
 """
 
 global setup = "3D2D"
-save         = true
+# save         = true
 
 # set physical params and geometry
 PeriodicMedia.clear_entities!()
@@ -105,8 +105,8 @@ elseif setup == "3D2D"
     Fig = Obstacle(Shape,minimum(L)/4)
 end
 
-global ppw = 7
-global dim = 4
+global ppw = 1
+global dim = 1
 
 # correction parameters
 global δ    = 2*k1
@@ -115,6 +115,8 @@ global he   = 0.25
 # Window sizes (normalized to λ)
 Asizes = collect(3:1:5)
 errors = []
+
+name_exp = "windowconvergence"*"_ppw"*string(ppw)*"_dim"*string(dim)*"_k"*string(k1)*string(".txt")
 
 for Ap in Asizes
     # set discretization parameters
@@ -127,22 +129,38 @@ for Ap in Asizes
     # @show ebf,ebt = run_experiment(P,Wpar; etest = true)
     # push!(errors,[ebf,ebt])
     @show ebf = run_experiment(P,Wpar; etest = true, add_correct = false)
-    push!(errors, ebf)
+    # push!(errors, ebf)
+
+    open("eb_"*name_exp,"a") do io
+        tail = Ap==Asizes[end] ? "" : "\n"
+        write(io, string(ebf) * tail)
+    end
+
+end
+
+open("A_"*name_exp,"a") do io
+    for (i,Ap) in enumerate(Asizes)
+        if i == length(Asizes)
+            write(io, string(Ap))
+        else
+            write(io, string(Ap)* "\n")
+        end
+    end
 end
 
 ################# Plot convergence #################
-import Plots
-lbs   = ["without correction" "with correction"]
-p = Plots.plot(title = "k="*string(P.pde[1].k))
+# import Plots
+# lbs   = ["without correction" "with correction"]
+# p = Plots.plot(title = "k="*string(P.pde[1].k))
 
-# ef,et = [e[1] for e in errors],[e[2] for e in errors]
-# p = Plots.plot!(Asizes, log10.([ef et]); label = lbs)
-p = Plots.plot!(log10.(Asizes), log10.(errors); label = lbs[1])
+# # ef,et = [e[1] for e in errors],[e[2] for e in errors]
+# # p = Plots.plot!(Asizes, log10.([ef et]); label = lbs)
+# p = Plots.plot!(log10.(Asizes), log10.(errors); label = lbs[1])
 
-if save == true
-    namefig = setup*string(".png")
-    Plots.savefig(p, namefig) 
-end
+# if save == true
+#     namefig = setup*string(".png")
+#     Plots.savefig(p, namefig) 
+# end
 
 
 
