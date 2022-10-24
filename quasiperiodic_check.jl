@@ -74,33 +74,39 @@ Shape = PeriodicMedia.ParametricSurfaces.Sphere
 # Shape = PeriodicMedia.ParametricSurfaces.Kite
 Fig = Obstacle(Shape,minimum(L)/4)
 
-
-global ppw = 2
-global dim = 1
-
 # correction parameters
 #        δ    = 1.5*k1
-global he   = 1.0
+global he   = .25
 
 # global Cδ = PeriodicMedia.fixdelta(P,δ)
 
 # Window sizes (normalized to λ)
-Asizes = collect(3:1:5)
+Asizes = collect(3:.15:12)
 e = Vector{Float64}(undef,length(Asizes))
 
-for (i,Ap) in enumerate(Asizes)
-    # set discretization parameters
-    @info Ap
-    global λ = 2π/k1
-    c    = 0.3
-    A    = Ap * λ
-    Wpar = Window(c,A)
+global ppw = 8
+dim_orders = [2,3,4]
+name_exp = "qp_k"*string(k1)*"_ppw"*string(ppw)*".txt"
+for dim_ord in dim_orders
+    global dim = dim_ord
+    for (i,Ap) in enumerate(Asizes)
+        # set discretization parameters
+        @info dim Ap
+        global λ = 2π/k1
+        c    = 0.3
+        A    = Ap * λ
+        Wpar = Window(c,A)
 
-    e[i] = run_experiment(P,Wpar)
+        e[i] = run_experiment(P,Wpar)
+        open(name_exp*"_p"*string(dim),"a") do io
+            tail = Ap==Asizes[end] ? "" : "\n"
+            write(io, string(e[i]) * tail)
+        end
+    end
 end
 
 ################# Plot convergence #################
-import Plots
-Plots.plot(Asizes,log10.(e))
-namefig = "qp_convergence"*string(".png")
-Plots.savefig(p, namefig) 
+# import Plots
+# Plots.plot(Asizes,log10.(e))
+# namefig = "qp_convergence"*string(".png")
+# Plots.savefig(p, namefig) 
