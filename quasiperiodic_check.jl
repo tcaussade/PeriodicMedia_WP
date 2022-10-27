@@ -60,7 +60,7 @@ end
 
 PeriodicMedia.clear_entities!()
 
-θ   = [0., 0.] 
+θ   = [π/6., π/6.] 
 L   = [0.5, 0.5]
 # θ = 0.0
 # L = 0.5
@@ -84,8 +84,8 @@ global he   = .25
 Asizes = collect(3:.15:12)
 e = Vector{Float64}(undef,length(Asizes))
 
-global ppw = 8
-dim_orders = [2,3,4]
+global ppw = 1
+dim_orders = [1,2]
 name_exp = "qp_k"*string(k1)*"_ppw"*string(ppw)*".txt"
 for dim_ord in dim_orders
     global dim = dim_ord
@@ -97,7 +97,7 @@ for dim_ord in dim_orders
         A    = Ap * λ
         Wpar = Window(c,A)
 
-        e[i] = run_experiment(P,Wpar)
+        @show e[i] = run_experiment(P,Wpar)
         open(name_exp*"_p"*string(dim),"a") do io
             tail = Ap==Asizes[end] ? "" : "\n"
             write(io, string(e[i]) * tail)
