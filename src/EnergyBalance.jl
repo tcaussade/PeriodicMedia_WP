@@ -29,7 +29,7 @@ function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; 
     energytest(P,h,u1,u2,xi)
 end
 function energytest(P::Problem{3,2},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true, h::Float64)
-    Trap = WavePropBase.TrapezoidalOpen
+    # Trap = WavePropBase.TrapezoidalOpen
     upp = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],+h),(0.5*P.L[1],0.5*P.L[2],+h); M = (20,20), dimorder = 4)
     low = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],-h),(0.5*P.L[1],0.5*P.L[2],-h); M = (20,20), dimorder = 4)
     xi  = [q.coords[1] for q in upp.dofs]
@@ -52,9 +52,9 @@ end
 """ computes coefficients and assets energy conservation """
 function energytest(P::Problem{2,1},h::Float64,u1::Vector{ComplexF64},u2::Vector{ComplexF64}, x::Vector{Float64})
     nC = 30
-    # S = zero(ComplexF64)
+    S = zero(ComplexF64)
     R = zero(ComplexF64)
-    T = zero(ComplexF64)
+    # T = zero(ComplexF64)
     α,β = P.pde[1].k*P.dir
     for n=-nC:nC
         αₙ = α + n*2π/P.L
@@ -65,20 +65,21 @@ function energytest(P::Problem{2,1},h::Float64,u1::Vector{ComplexF64},u2::Vector
             if n==0
                 global B₀⁻ = B⁻
             end
-            # S = S + βₙ/β * (abs(B⁺)^2+abs(B⁻)^2)
+            S += βₙ/β * (abs(B⁺)^2+abs(B⁻)^2)
             R += βₙ/β * abs(B⁺)^2
-            T += βₙ/β * abs(B⁻)^2
+            # T += βₙ/β * abs(B⁻)^2
         end
     end
-    T += 1 + 2*real(B₀⁻)
+    e = abs(2*real(B₀⁻)+S)
+    T = 1 + 2*real(B₀⁻) + S - R
     # abs(2*real(B₀)+S)
-    return R,T
+    return e,R,T
 end
 function energytest(P::Problem{3,2},h::Float64,u1::Vector{ComplexF64},u2::Vector{ComplexF64},xi::Vector{Float64},yi::Vector{Float64})
     nC= 10
-    # S = zero(ComplexF64)
+    S = zero(ComplexF64)
     R = zero(ComplexF64)
-    T = zero(ComplexF64)
+    # T = zero(ComplexF64)
     α₁,α₂,β = P.pde[1].k*P.dir
     for n1 = -nC:nC, n2 = -nC:nC
         αₘ₁ = α₁ + n1*2π/P.L[1]
@@ -90,12 +91,13 @@ function energytest(P::Problem{3,2},h::Float64,u1::Vector{ComplexF64},u2::Vector
             if n1 == 0 && n2 == 0
                 global B₀⁻ = B⁻
             end
-            # S += βₙ/β * (abs(B⁺)^2+abs(B⁻)^2)
+            S += βₙ/β * (abs(B⁺)^2+abs(B⁻)^2)
             R += βₙ/β * abs(B⁺)^2
-            T += βₙ/β * abs(B⁻)^2
+            # T += βₙ/β * abs(B⁻)^2
         end
     end
+    e = abs(2*real(B₀⁻)+S)
+    T = 1 + 2*real(B₀⁻) + S - R
     # abs(2*real(B₀)+S)
-    T += 1 + 2*real(B₀⁻)
-    return R,T
+    return e,R,T
 end

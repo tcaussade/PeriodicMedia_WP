@@ -20,9 +20,7 @@ end
 function accuracy(P,Γt,Wpar,ϕ; correct)
     # @info "Computing energy" he
     @assert he < Wpar.c * Wpar.A
-    R,T = energytest(P,Γt,Wpar, ϕ; FRO = correct, h = he)
-    eb = abs(R+T-1)
-    # @info "Test results" eb R T 
+    eb,_,_ = energytest(P,Γt,Wpar, ϕ; FRO = correct, h = he)
     return eb
 end
 function run_experiment(P,Wpar; etest, add_correct = true)
@@ -105,8 +103,7 @@ elseif setup == "3D2D"
     Fig = Obstacle(Shape,minimum(L)/4)
 end
 
-global ppw = 1
-global dim = 1
+
 
 # correction parameters
 global δ    = 2*k1
@@ -116,35 +113,28 @@ global he   = 0.25
 Asizes = collect(3:1:5)
 errors = []
 
-name_exp = "windowconvergence"*"_ppw"*string(ppw)*"_dim"*string(dim)*"_k"*string(k1)*string(".txt")
+global ppw = 1
+global λ   = 2π/k1
+global c   = 0.3
 
-for Ap in Asizes
-    # set discretization parameters
-    @info Ap
-    global λ = 2π/k1
-    c    = 0.3
-    A    = Ap * λ
-    Wpar = Window(c,A)
+dim_orders = [1,2]
+for dim_order in dim_orders
+    global dim = dim_order
 
-    # @show ebf,ebt = run_experiment(P,Wpar; etest = true)
-    # push!(errors,[ebf,ebt])
-    @show ebf = run_experiment(P,Wpar; etest = true, add_correct = false)
-    # push!(errors, ebf)
+    name_exp = "windowconvergence"*"_ppw"*string(ppw)*"_dim"*string(dim)*"_k"*string(k1)*string(".txt")
 
-    open("eb_"*name_exp,"a") do io
-        tail = Ap==Asizes[end] ? "" : "\n"
-        write(io, string(ebf) * tail)
-    end
+    for Ap in Asizes
+        # set discretization parameters
+        Wpar = Window(c,Ap * λ)
+        @info dim Ap Wpar
 
-end
+        @show ebf = run_experiment(P,Wpar; etest = true, add_correct = false)
 
-open("A_"*name_exp,"a") do io
-    for (i,Ap) in enumerate(Asizes)
-        if i == length(Asizes)
-            write(io, string(Ap))
-        else
-            write(io, string(Ap)* "\n")
+        open("eb_"*name_exp,"a") do io
+            tail = Ap==Asizes[end] ? "" : "\n"
+            write(io, string(ebf) * tail)
         end
+
     end
 end
 
