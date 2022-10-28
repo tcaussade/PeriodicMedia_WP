@@ -30,8 +30,8 @@ function energytest(P::Problem{2,1},G::Vector,w::Window,σ::Vector{ComplexF64}; 
 end
 function energytest(P::Problem{3,2},G::Vector,w::Window,σ::Vector{ComplexF64}; FRO = true, h::Float64)
     Trap = WavePropBase.TrapezoidalOpen
-    upp = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],+h),(0.5*P.L[1],0.5*P.L[2],+h); M = (20,20), dimorder = 3, qrule = Trap)
-    low = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],-h),(0.5*P.L[1],0.5*P.L[2],-h); M = (20,20), dimorder = 3, qrule = Trap)
+    upp = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],+h),(0.5*P.L[1],0.5*P.L[2],+h); M = (20,20), dimorder = 4)
+    low = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],-h),(0.5*P.L[1],0.5*P.L[2],-h); M = (20,20), dimorder = 4)
     xi  = [q.coords[1] for q in upp.dofs]
     yi  = [q.coords[2] for q in upp.dofs]
 
@@ -85,8 +85,8 @@ function energytest(P::Problem{3,2},h::Float64,u1::Vector{ComplexF64},u2::Vector
         αₘ₂ = α₂ + n2*2π/P.L[2]
         if P.pde[1].k^2 ≥ abs(αₘ₁)^2 + abs(αₘ₂)^2
             βₙ = sqrt(complex(P.pde[1].k^2 - αₘ₁^2 - αₘ₂^2 ))
-            B⁺ = exp(-im*βₙ*h)/P.L[1]/P.L[2] * sum( u1.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
-            B⁻ = exp(-im*βₙ*h)/P.L[1]/P.L[2] * sum( u2.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
+            @show B⁺ = exp(-im*βₙ*h)/P.L[1]/P.L[2] * sum( u1.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
+            @show B⁻ = exp(-im*βₙ*h)/P.L[1]/P.L[2] * sum( u2.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
             if n1 == 0 && n2 == 0
                 global B₀⁻ = B⁻
             end

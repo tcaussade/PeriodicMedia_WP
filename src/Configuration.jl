@@ -44,6 +44,7 @@ function HorizontalStraightPlane(xe::SVector,xs::SVector; M::Tuple{Int,Int}, dim
     NystromMesh(msh,Γ, WavePropBase.TensorProductQuadrature(qrule(dimorder),qrule(dimorder)))
 end
 HorizontalStraightPlane(xe,xs;M,dimorder,qrule) = HorizontalStraightPlane(SVector(xe),SVector(xs);M,dimorder,qrule)
+HorizontalStraightPlane(xe,xs;M,dimorder) = HorizontalStraightPlane(SVector(xe),SVector(xs);M,dimorder)
 
 """ ndofs returns the number of dofs to be used for each object to be discretized """
 

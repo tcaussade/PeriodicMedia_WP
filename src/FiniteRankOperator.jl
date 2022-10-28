@@ -169,7 +169,7 @@ end
 function planegradscat(P::Problem{3,2}, G::Vector; H::Float64)
     # Trap = WavePropBase.TrapezoidalOpen
     # Warning: are there enough points ?
-    Σ = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],H),(0.5*P.L[1],0.5*P.L[2],H); M = (20,20), dimorder = 4)
+    Σ = HorizontalStraightPlane((+0.5*P.L[1],+0.5*P.L[2],H),(-0.5*P.L[1],-0.5*P.L[2],H); M = (15,15), dimorder = 5)
     x = [q.coords[1:2] for q in Σ.dofs]
     return gradscatpotential(P,Σ,G), scatpotential(P,Σ,G), x
 end
