@@ -126,8 +126,13 @@ function cellsolution(P::Problem{3,2},G::Vector,w::Window,densities::Vector{Comp
 
     return X,Y,Z, (XZ = Uxz, YZ = Uyz, XY = Uxy)
 end
-function cutcellsolution(P::Problem{3,2},mshgrid,w::Window,σw::Vector{ComplexF64},G::Vector; FRO::Bool)
-    Γ₁ = get(G[1],(0,0),"")
+function cutcellsolution(P::Problem{3,NP},mshgrid,w::Window,σw::Vector{ComplexF64},G::Vector; FRO::Bool) where NP
+    if NP == 2
+        Γ₁ = get(G[1],(0,0),"")
+    else
+        Γ₁ = get(G[1],0,"")
+    end
+
     us = scatpotential(P,mshgrid,G)*σw
     if FRO
         H =  w.A*w.c
@@ -143,6 +148,23 @@ function cutcellsolution(P::Problem{3,2},mshgrid,w::Window,σw::Vector{ComplexF6
     end
     @info "Cut done"
     return U
+end
+
+function cellsolution(P::Problem{3,1},G::Vector,w::Window,densities::Vector{ComplexF64}; ppw, yzlims = [-w.c*w.A w.c*w.A], FRO::Bool)
+    h = 2π/max(P.pde[1].k,P.pde[2].k) / ppw
+    X = -0.5*P.L[1]:h:0.5*P.L[1]
+    Y = yzlims[1]:h:yzlims[2]
+    Z = yzlims[1]:h:yzlims[2]
+
+    σw = lmul!(wgfmatrix(G,w),densities)
+    
+    # FRO ? nothing : @info "Non-corrected potential"
+    FRO = false
+    Uxz = cutcellsolution(P,vec([SVector(x,0.,z)  for x in X, z in Z]),w,σw,G; FRO = FRO)
+    Uyz = cutcellsolution(P,vec([SVector(0.,y,z)  for y in Y, z in Z]),w,σw,G; FRO = FRO)
+    Uxy = cutcellsolution(P,vec([SVector(x,y,0.)  for x in X, y in Y]),w,σw,G; FRO = FRO)
+
+    return X,Y,Z, (XZ = Uxz, YZ = Uyz, XY = Uxy)
 end
 
 """
@@ -185,6 +207,29 @@ function XYviewsolution(P::Problem{3,2},X,Y,U::Union{Matrix{ComplexF64}, Matrix{
         Yn = Y .+ n2*P.L[2]
         Un = U*P.γ[1]^n1*P.γ[2]^n2
         p  = Plots.heatmap!(Xn,Yn,part.(Un), color = :RdBu, clims = (-2,2))
+    end
+    return p
+end
+
+function XZviewsolution(P::Problem{3,1},X,Z,U::Union{Matrix{ComplexF64}, Matrix{Float64}}; ncell, part = real)
+    p = Plots.heatmap(X,Z,part.(U), clims = (-2,2), aspect_ratio = 1, title = "XZ view")
+    for n in ncell
+        Xn = X .+ n*P.L
+        Un = U*P.γ^n
+        p  = Plots.heatmap!(Xn,Z,part.(Un), color = :RdBu, clims = (-2,2))
+    end
+    return p
+end
+function YZviewsolution(P::Problem{3,1},Y,Z,U::Union{Matrix{ComplexF64}, Matrix{Float64}}; ncell, part = real)
+    p  = Plots.heatmap(Y,Z,part.(U), color = :RdBu, clims = (-2,2), aspect_ratio = 1, title = "YZ view")
+    return p
+end
+function XYviewsolution(P::Problem{3,1},X,Y,U::Union{Matrix{ComplexF64}, Matrix{Float64}}; ncell, part = real)
+    p = Plots.heatmap(X,Y,part.(U), clims = (-2,2), aspect_ratio = 1, title = "XY view")
+    for n in ncell
+        Xn = X .+ n*P.L[1]
+        Un = U*P.γ^n
+        p  = Plots.heatmap!(Xn,Y,part.(Un), color = :RdBu, clims = (-2,2))
     end
     return p
 end

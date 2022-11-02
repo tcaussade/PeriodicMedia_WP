@@ -54,19 +54,23 @@ function ndofs(P::Problem{2,1},Fig::Obstacle, w::Window , ppw::Any)
     Ms = Int(ceil( 2π*Fig.radius / max(λ₁,λ₂) * ppw ))
     Ms,Mv
 end
-function ndofs(P::Problem{3,NP},Fig::Obstacle, w::Window , ppw::Any) where NP
+function ndofs(P::Problem{3,2},Fig::Obstacle, w::Window , ppw::Any)
     λ₁,λ₂ = 2π./[P.pde[1].k, P.pde[2].k]
     N1 = Int(ceil( 4π*Fig.radius^2 / max(λ₁,λ₂)^2 * ppw ))
     Nx = (Int(ceil(P.L[1]/λ₁ * ppw)), Int(ceil(2*w.A/λ₁ * ppw)))
     Ny = (Int(ceil(P.L[2]/λ₁ * ppw)), Int(ceil(2*w.A/λ₁ * ppw)))
     N1,Nx,Ny
 end
+function ndofs(P::Problem{3,1},Fig::Obstacle, w::Window , ppw::Any)
+    λ₁,λ₂ = 2π./[P.pde[1].k, P.pde[2].k]
+    Ns = Int(ceil( 4π*Fig.radius^2 / max(λ₁,λ₂)^2 * ppw ))
+    Nv = Int(ceil(2*w.A/λ₁ * ppw))
+    Ns,Nv
+end
 
 """ unitcell creates a unit cell, thus contains no displaced curves and a single osbtacle """
 
 function unitcell(P::Problem{2,1}, Fig::Obstacle, w::Window ; ppw::Any,dimorder::Int)
-    # Mv = Int(ceil( 2*w.A*(P.pde[1].k/2π) * ppw ))
-    # Ms = Int(ceil( 2π*Fig.radius*(max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
     Ms,Mv = ndofs(P,Fig,w,ppw)
     Γ₁ = Scatterer(Ms, Fig; c = (0.,0.), dimorder = dimorder)
     Γ₂ = StraightLine((-0.5*P.L,-w.A),(-0.5*P.L,w.A); M = Mv, dimorder = dimorder)
@@ -74,9 +78,6 @@ function unitcell(P::Problem{2,1}, Fig::Obstacle, w::Window ; ppw::Any,dimorder:
     return [Γ₁,Γ₂,Γ₃]
 end
 function unitcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Any,dimorder::Int)
-    # N1 = Int(ceil( sqrt(4π*Fig.radius^2 /6) * (max(P.pde[1].k,P.pde[2].k)/2π) * ppw ))
-    # Nx = (Int(ceil(P.L[1]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
-    # Ny = (Int(ceil(P.L[2]*(P.pde[1].k/2π) * ppw)), Int(ceil(2*w.A*(P.pde[1].k/2π) * ppw)))
     N1,Nx,Ny = ndofs(P,Fig,w,ppw)
     Γ₁ = Scatterer(N1,Fig; c = (0.,0.,0.), dimorder = dimorder)
     Γ₂ = StraightPlane((-0.5P.L[1],-0.5P.L[2],-w.A),(-0.5P.L[1],+0.5P.L[2],+w.A); M=Nx, dimorder = dimorder)  
@@ -88,6 +89,15 @@ function unitcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Any,dimorder::
     @assert WavePropBase.normal(Γ₄.dofs[1]) == [0.,1.,0.]
     @assert WavePropBase.normal(Γ₅.dofs[1]) == [0.,1.,0.]
     return [Γ₁,Γ₂,Γ₃,Γ₄,Γ₅]
+end
+function unitcell(P::Problem{3,1},Fig::Obstacle, w::Window; ppw,dimorder::Int)
+    Ns,Nv = ndofs(P,Fig,w,ppw)
+    Γ₁ = Scatterer(Ns,Fig; c = (0.,0.,0.), dimorder = dimorder)
+    Γ₂ = StraightPlane((-0.5w.A,-w.A,-w.A),(-0.5w.A,+w.A,+w.A); M=(Nv,Nv), dimorder = dimorder)  
+    Γ₃ = StraightPlane((+0.5w.A,-w.A,-w.A),(+0.5w.A,+w.A,+w.A); M=(Nv,Nv), dimorder = dimorder)
+    @assert WavePropBase.normal(Γ₂.dofs[1]) == [1.,0.,0.]
+    @assert WavePropBase.normal(Γ₃.dofs[1]) == [1.,0.,0.]
+    return [Γ₁,Γ₂,Γ₃]
 end
 
 """ extendedcell is used to avoid singularities
@@ -139,6 +149,19 @@ function extendedcell(P::Problem{3,2},Fig::Obstacle, w::Window ; ppw::Any,dimord
         merge!(Γ₅, Dict(i => Γ))
     end
     return [Γ₁,Γ₂,Γ₃,Γ₄,Γ₅]
+end
+function extendedcell(P::Problem{3,1}, Fig::Obstacle, w::Window ;ppw::Any,dimorder::Int)
+    Ns,Nv = ndofs(P,Fig,w,ppw)
+    Γ₁ = Dict{Int,NystromMesh}()
+    for i = -1:1
+        Γ = Scatterer(Ns, Fig; c = (i*P.L,0.,0.), dimorder = dimorder)
+        merge!(Γ₁,Dict(i => Γ))
+    end
+    Γ₂ = StraightPlane((-1.5*P.L,-w.A,-w.A),(-1.5*P.L,w.A,w.A); M = (Nv,Nv), dimorder = dimorder)
+    @assert WavePropBase.normal(Γ₂.dofs[1]) == [1.,0.,0.]
+    Γ₃ = StraightPlane((+1.5*P.L,-w.A,-w.A),(+1.5*P.L,w.A,w.A); M = (Nv,Nv), dimorder = dimorder)
+    @assert WavePropBase.normal(Γ₃.dofs[1]) == [1.,0.,0.]
+    return [Γ₁, Γ₂, Γ₃]
 end
 
 """ meshplot are used to plot NystromMesh dofs"""
