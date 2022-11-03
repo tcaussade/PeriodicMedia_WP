@@ -155,7 +155,9 @@ for (i,n) in enumerate(Cδ)
     pm = Plots.plot!(Asizes, log10.(cm[i,:]); label = "-"*string(n) )
 end
 
-p = Plots.plot(pp,pm, layout = (1,2))
+eb = Plots.plot(Asizes, log10.(e); title = "EB")
+
+p = Plots.plot(pp,pm,eb, layout = (3,1), size = (600,800))
 
 namefig = "radiative_coefs"*string(".png")
 Plots.savefig(p, namefig) 
