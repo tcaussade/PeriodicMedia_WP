@@ -20,6 +20,14 @@ function testboundary(P::Problem{3,2}; h::Float64)
     low = HorizontalStraightPlane((-0.5*P.L[1],-0.5*P.L[2],-h),(0.5*P.L[1],0.5*P.L[2],-h); M = (20,20), dimorder = 4)
     xi  = [q.coords[1] for q in upp.dofs]
     yi  = [q.coords[2] for q in upp.dofs]
+
+    for n in [WavePropBase.normal(q) for q in low.dofs]
+        @assert n[3] == +1.
+    end
+    for n in [WavePropBase.normal(q) for q in low.dofs]
+        @assert n[3] == +1.
+    end
+
     return upp,low,(xi,yi)
 end
 function testboundary(P::Problem{3,1}; h::Float64)
@@ -102,6 +110,7 @@ function energytest(P::Problem{3,2},h::Float64,u1::Vector{ComplexF64},u2::Vector
     return e,R,T
 end
 function energytest(P::Problem{3,1},ρ::Float64,u::Vector{ComplexF64},ri)
+    @warn "eb 3d1d - function not tested"
     r,θ = ri
     α,β₁,β₂ = P.pde[1].k * P.dir
     θtilda = atan(β₂,β₁)
