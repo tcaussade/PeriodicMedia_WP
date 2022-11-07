@@ -8,7 +8,7 @@ test     = true
 plotting = true
 
 # set physical params
-θ   = [0.,0.] 
+θ   = [π/6.,π/4.] 
 L   = [0.5, 0.5]
 k1  = 9.2 
 k2  = 15.0
@@ -19,17 +19,17 @@ P = Problem([k1,k2],θ,L,pol; ambdim = 3, geodim = 2)
 # set discretization parameters
 λ    = 2π/k1
 c    = 0.5
-A    = 10*λ
+A    = 5*λ
 Wpar = Window(c,A)
 
-ppw = 4
-dim = 2
+ppw = 3
+dim = 1
 
 #create geometry
 Shape = PeriodicMedia.ParametricSurfaces.Sphere
 PeriodicMedia.clear_entities!()
 
-Fig = Obstacle(Shape,minimum(L)/3)
+Fig = Obstacle(Shape,minimum(L)/4)
 Γs = unitcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
 Γt = extendedcell(P,Fig, Wpar; ppw = ppw, dimorder = dim)
 G  = (Γs=Γs, Γt=Γt)
@@ -69,25 +69,29 @@ if test
 end
 
 import Plots
+include("matlab_export.jl")
 p = Plots.Plot()
 if plotting
     
     ncell = -3:3
     len   = length(ncell) 
-    zlims = [-2.0,4.0]
-    resolution = 20
-    @info "Plotting solution" len resolution
-    X,Y,Z, U = cellsolution(P,Γt,Wpar,ϕ; ppw = resolution, zlims = zlims, FRO = correct)
-    p1 = XYviewsolution(P,X,Y,U.XY; ncell = ncell)
-    p2 = YZviewsolution(P,Y,Z,U.YZ; ncell = ncell)
-    p3 = XZviewsolution(P,X,Z,U.XZ; ncell = ncell)
+    zlims = [-3*maximum(L),3*maximum(L)]
+    res   = 120
+    @show h = 2π/max(P.pde[1].k,P.pde[2].k) / res
+    @info "Plotting solution" len res
+    X,Y,Z, U = cellsolution(P,Γt,Wpar,ϕ; ppw = res, zlims = zlims, FRO = correct)
+    # p1 = XYviewsolution(P,X,Y,U.XY; ncell = ncell)
+    # p2 = YZviewsolution(P,Y,Z,U.YZ; ncell = ncell)
+    # p3 = XZviewsolution(P,X,Z,U.XZ; ncell = ncell)
 
-    lb = "(c,A/λ)="*string((Wpar.c,Wpar.A/λ))*", k= "*string([k1 k2])*", θ= "*string(θ./π)*"π, L="*string(L)
-    if test
-        lb *=" EB: "*string(round(eb, digits = 8))
-    end
-    p = Plots.plot(p1,p2,p3, layout=(1,3), size = (1500,700), plot_title = lb)
-    # Plots.savefig(p,"bigexperiment.png")
+    # lb = "(c,A/λ)="*string((Wpar.c,Wpar.A/λ))*", k= "*string([k1 k2])*", θ= "*string(θ./π)*"π, L="*string(L)
+    # if test
+    #     lb *=" EB: "*string(round(eb, digits = 8))
+    # end
+    # p = Plots.plot(p1,p2,p3, layout=(1,3), size = (1500,700), plot_title = lb)
+    # # Plots.savefig(p,"bigexperiment.png")
+
+    matlab_export(X,Y,Z,U,"3d_data")
 end
 
 
