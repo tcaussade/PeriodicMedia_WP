@@ -165,12 +165,14 @@ function xquasiperiodicequation(P::Problem{3,2}, G::Vector, opD, opN)
     D35,N35 = superoperator(P.pde[1],Γ₃,G[5],P.γ[1],opD), superoperator(P.pde[1],Γ₃,G[5],P.γ[1],opN)
     td1 = axpy!(P.γ[1]^3,D24,D34)
     td2 = axpy!(P.γ[1]^3,D25,D35)
-    # Mp5 = lmul!(-P.γ[1]/P.γ[2],axpy!(-P.γ[2]^3,td2,td1))
     Mp5 = axpby!(-P.γ[1]/P.γ[2],td1, +P.γ[1]*P.γ[2]^2,td2)
     tn1 = axpy!(P.γ[1]^3,N24,N34)
     tn2 = axpy!(P.γ[1]^3,N25,N35)
-    # Mp6 = lmul!(+P.γ[1]/P.γ[2],axpy!(-P.γ[2]^3,tn2,tn1))
     Mp6 = axpby!(+P.γ[1]/P.γ[2],tn1, -P.γ[1]*P.γ[2]^2,tn2)
+
+    # Proposition trick
+    # Mp5 = axpby!(-P.γ[1]/P.γ[2] * 2P.γ[1]^3, D24, +P.γ[1]/P.γ[2] * 2P.γ[1]^3*P.γ[2]^3, D25)
+    # Mp6 = axpby!(+P.γ[1]/P.γ[2] * 2P.γ[1]^3, N24, -P.γ[1]/P.γ[2] * 2P.γ[1]^3*P.γ[2]^3, N25)
 
     [Mp1 Mp2 Mp3 Mp4 Mp5 Mp6]
 end
@@ -195,12 +197,14 @@ function yquasiperiodicequation(P::Problem{3,2},G::Vector,opD,opN)
     D53,N53 = superoperator(P.pde[1],Γ₅,G[3],P.γ[2],opD), superoperator(P.pde[1],Γ₅,G[3],P.γ[2],opN)
     td1 = axpy!(P.γ[2]^3,D42,D52)
     td2 = axpy!(P.γ[2]^3,D43,D53)
-    # Mp3 = lmul!(-P.γ[2]/P.γ[1],axpy!(-P.γ[1]^3,td2,td1))
     Mp3 = axpby!(-P.γ[2]/P.γ[1],td1, +P.γ[2]*P.γ[1]^2,td2)
     tn1 = axpy!(P.γ[2]^3,N42,N52)
     tn2 = axpy!(P.γ[2]^3,N43,N53)
-    # Mp4 = lmul!(-P.γ[2]/P.γ[1],axpy!(-P.γ[1]^3,tn2,tn1))
     Mp4 = axpby!(+P.γ[2]/P.γ[1],tn1, -P.γ[2]*P.γ[1]^2,tn2)
+
+    # Proposition trick
+    # Mp3 = axpby!(-P.γ[2]/P.γ[1] * 2P.γ[2]^3 * P.γ[2]^3, D42, +P.γ[2]/P.γ[1] * 2P.γ[2]^3, D43)
+    # Mp4 = axpby!(+P.γ[2]/P.γ[1] * 2P.γ[2]^3 * P.γ[2]^3, N42, -P.γ[2]/P.γ[1] * 2P.γ[2]^3, N43)
 
     # D45,N45 = Matrix(opD(P.pde[1],Γ₄,Γ₅)), Matrix(opN(P.pde[1],Γ₄,Γ₅))
     # D54,N54 = Matrix(opD(P.pde[1],Γ₅,Γ₄)), Matrix(opN(P.pde[1],Γ₅,Γ₄))

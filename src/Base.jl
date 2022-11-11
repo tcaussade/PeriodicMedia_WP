@@ -36,6 +36,15 @@ struct Problem{N,NP}
         @info "Created physical problem" (dir[1],dir[2],dir[3]) (γ[1],γ[2]) η
         new{ambdim,geodim}(pde,dir,η,γ,L)
     end
+    function Problem(k::Vector{Float64},θ::Vector{Float64},L::Float64, pol::String; ambdim::Int, geodim::Int)
+        @assert ambdim==3 && geodim==1 
+        pde = [Helmholtz(dim=ambdim; k=k[1]), Helmholtz(dim=ambdim; k=k[2])]
+        dir = [sin(θ[1])*cos(θ[2]),sin(θ[1])*sin(θ[2]), cos(θ[1])]
+        γ   = exp(im*k[1]*dir[1]*L)
+        pol == "TE" ? η = 1.0 : η = k[2]^2/k[1]^2
+        @info "Created physical problem" (dir[1],dir[2],dir[3]) γ η
+        new{ambdim,geodim}(pde,dir,η,γ,L)
+    end
 end
 
 """
@@ -92,12 +101,19 @@ function wgfmatrix(G::Vector{NystromMesh{2,T,M,NM}}, w::Window) where {T,M,NM}
     d2 = [χ(q.coords[2],w) for q in G[2].dofs]
     Diagonal([d1;d1;d2;d2])
 end
-
 function wgfmatrix(G::Vector{NystromMesh{3,T,M,NM}}, w::Window) where {T,M,NM}
-    d1 = ones(ComplexF64, length(G[1].dofs))
-    d2 = [χ(q.coords[3],w) for q in G[2].dofs]
-    d3 = [χ(q.coords[3],w) for q in G[4].dofs]
-    Diagonal([d1;d1;d2;d2;d3;d3])
+    if length(G) == 5
+        # 3D-2D
+        d1 = ones(ComplexF64, length(G[1].dofs))
+        d2 = [χ(q.coords[3],w) for q in G[2].dofs]
+        d3 = [χ(q.coords[3],w) for q in G[4].dofs]
+        return Diagonal([d1;d1;d2;d2;d3;d3])
+    else
+        # 3D-1D
+        d1 = ones(ComplexF64, length(G[1].dofs))
+        d2 = [χ(q.coords[2],w) * χ(q.coords[3],w)  for q in G[2].dofs]
+        return Diagonal([d1;d1;d2;d2])
+    end
 end
 
 function wgfmatrix(G::Vector, w::Window)
