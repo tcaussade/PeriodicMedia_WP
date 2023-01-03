@@ -92,7 +92,7 @@ function energytest(P::Problem{3,2},h::Float64,u1::Vector{ComplexF64},u2::Vector
     for n1 = -nC:nC, n2 = -nC:nC
         αₘ₁ = α₁ + n1*2π/P.L[1]
         αₘ₂ = α₂ + n2*2π/P.L[2]
-        if P.pde[1].k^2 ≥ abs(αₘ₁)^2 + abs(αₘ₂)^2
+        if P.pde[1].k^2 ≥ abs(αₘ₁ + αₘ₂)^2 # + abs(αₘ₂)^2
             βₙ = sqrt(complex(P.pde[1].k^2 - αₘ₁^2 - αₘ₂^2 ))
             @show B⁺ = exp(-im*βₙ*h)/P.L[1]/P.L[2] * sum( u1.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)
             @show B⁻ = exp(-im*βₙ*h)/P.L[1]/P.L[2] * sum( u2.*exp.(-im*αₘ₁*xi-im*αₘ₂*yi) ) *P.L[1]*P.L[2]/length(u1)

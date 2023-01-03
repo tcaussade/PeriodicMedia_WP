@@ -8,7 +8,8 @@ end
 function seriesconstant(P::Problem{3,2}, n::Tuple{Int,Int})
     αₙ₁ = P.dir[1]*P.pde[1].k + 2π*n[1]/P.L[1]
     αₙ₂ = P.dir[2]*P.pde[1].k + 2π*n[2]/P.L[2]
-    βₙ  = sqrt(complex(P.pde[1].k^2-αₙ₁^2-αₙ₂^2))
+    # βₙ  = sqrt(complex(P.pde[1].k^2-αₙ₁^2-αₙ₂^2))
+    βₙ  = sqrt(complex(P.pde[1].k^2-(αₙ₁+αₙ₂)^2))
     return αₙ₁, αₙ₂, βₙ
 end
 
